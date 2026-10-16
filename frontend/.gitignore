@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Teste e2e: capturi de ecran și poza mare generată la rulare
+e2e/screenshots/
+e2e/fixtures/mare.png

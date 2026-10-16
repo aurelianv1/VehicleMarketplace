@@ -407,6 +407,9 @@ cd ../frontend                          # după ce există
 npm run dev                             # pe :5173
 ```
 
+Teste end-to-end (Firefox headless, cu backend și frontend pornite): `cd frontend && npm run e2e`.
+Detalii în `frontend/e2e/README.md`.
+
 `CORS_ORIGINS` din `.env` trebuie să includă `http://localhost:5173`.
 
 # Probleme cunoscute
