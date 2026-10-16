@@ -1,4 +1,6 @@
-import { BASE, SCREENSHOTS, launchBrowser } from './config.mjs'
+import { execSync } from 'node:child_process'
+
+import { BASE, REPO_ROOT, SCREENSHOTS, launchBrowser } from './config.mjs'
 
 let failures = 0
 const check = (name, ok, extra = '') => {
@@ -94,5 +96,10 @@ await page.screenshot({ path: `${SCREENSHOTS}2-mobile-menu.png` })
 check('fără erori în consolă', consoleErrors.length === 0, consoleErrors.join(' | '))
 
 await browser.close()
+
+// Curățenie: API-ul nu are ștergere de cont, așa că scoatem utilizatorul de test direct din bază
+const sql = `delete from users where email = '${email}'`
+const removed = execSync(`docker compose exec -T db psql -U carmarket -d carmarket -tAc "${sql}"`, { cwd: REPO_ROOT }).toString().trim()
+check('curățenie: utilizatorul de test șters', removed === 'DELETE 1', removed)
 console.log(failures ? `\n${failures} verificări au eșuat` : '\nToate verificările au trecut')
 process.exit(failures ? 1 : 0)

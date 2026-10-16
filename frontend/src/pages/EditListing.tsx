@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
 import { listingsApi } from '../api/listings'
@@ -12,15 +12,17 @@ import { useAuth } from '../context/AuthContext'
 import { STATUS_LABELS } from '../lib/format'
 import { formFromListing, toPayload, validateListing } from '../lib/listingForm'
 import type { ListingFormErrors, ListingFormValues } from '../lib/listingForm'
+import { useFlashNotice } from '../lib/useFlashNotice'
+import { usePageTitle } from '../lib/usePageTitle'
 import type { CarImage, ListingDetail } from '../types'
 
 export default function EditListing() {
+  usePageTitle('Editează anunțul')
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   // Mesaj venit de la „Adaugă anunț” când pozele sau publicarea au eșuat
-  const notice = (location.state as { notice?: string } | null)?.notice ?? null
+  const notice = useFlashNotice()
 
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [values, setValues] = useState<ListingFormValues | null>(null)

@@ -7,8 +7,10 @@ import { ApiError } from '../api/client'
 import ErrorMessage from '../components/ErrorMessage'
 import FormField from '../components/FormField'
 import { useAuth } from '../context/AuthContext'
+import { usePageTitle } from '../lib/usePageTitle'
 
 export default function Login() {
+  usePageTitle('Autentificare')
   const { user, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()

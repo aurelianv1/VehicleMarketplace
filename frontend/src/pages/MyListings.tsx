@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
 import { listingsApi } from '../api/listings'
@@ -7,6 +7,8 @@ import ErrorMessage from '../components/ErrorMessage'
 import ListingCard from '../components/ListingCard'
 import Spinner from '../components/Spinner'
 import { STATUS_LABELS, pluralListings } from '../lib/format'
+import { useFlashNotice } from '../lib/useFlashNotice'
+import { usePageTitle } from '../lib/usePageTitle'
 import type { ListingCard as Listing, ListingStatus } from '../types'
 
 const BADGE: Record<ListingStatus, string> = {
@@ -19,8 +21,8 @@ const BADGE: Record<ListingStatus, string> = {
 const actionClass = 'rounded px-2 py-1 text-xs font-medium ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-50'
 
 export default function MyListings() {
-  const location = useLocation()
-  const notice = (location.state as { notice?: string } | null)?.notice ?? null
+  usePageTitle('Anunțurile mele')
+  const notice = useFlashNotice()
 
   const [listings, setListings] = useState<Listing[] | null>(null)
   const [error, setError] = useState<string | null>(null)

@@ -8,6 +8,7 @@ import FavoriteButton from '../components/FavoriteButton'
 import ImageGallery from '../components/ImageGallery'
 import Spinner from '../components/Spinner'
 import { useAuth } from '../context/AuthContext'
+import { usePageTitle } from '../lib/usePageTitle'
 import {
   BODY_LABELS,
   CONDITION_LABELS,
@@ -32,6 +33,7 @@ export default function ListingDetail() {
   // pe alt anunț să nu rămână starea de la cel vechi
   const [error, setError] = useState<{ id: string; status: number; message: string } | null>(null)
   const [phoneShownFor, setPhoneShownFor] = useState<number | null>(null)
+  usePageTitle(listing && String(listing.id) === id ? listing.title : 'Anunț')
 
   useEffect(() => {
     // Ca pe pagina principală: așteptăm sesiunea, pentru că de ea depind

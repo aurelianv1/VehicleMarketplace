@@ -11,6 +11,7 @@ import ListingCard from '../components/ListingCard'
 import Pagination from '../components/Pagination'
 import Spinner from '../components/Spinner'
 import { useAuth } from '../context/AuthContext'
+import { usePageTitle } from '../lib/usePageTitle'
 import { SORT_LABELS, options, pluralListings } from '../lib/format'
 import type { ListingCard as Listing, Page, SortOption } from '../types'
 
@@ -21,6 +22,7 @@ const isSort = (v: string | null): v is SortOption => v !== null && v in SORT_LA
  * linkul se poate trimite cuiva, iar butonul Back revine la căutarea anterioară.
  */
 export default function Home() {
+  usePageTitle(null)
   const { user, initializing } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -133,7 +135,17 @@ export default function Home() {
 
           {loading && !data && <Spinner />}
 
-          {data && data.items.length === 0 && !loading && (
+          {data && data.items.length === 0 && !loading && data.total > 0 && (
+            // ?page=99 dintr-un link vechi: există anunțuri, doar nu pe pagina asta
+            <div className="rounded-lg bg-white p-10 text-center ring-1 ring-slate-200">
+              <p className="font-medium">Pagina {page} nu există.</p>
+              <button type="button" onClick={() => goToPage(1)} className="mt-3 text-sm font-medium text-blue-600 hover:underline">
+                Mergi la prima pagină
+              </button>
+            </div>
+          )}
+
+          {data && data.total === 0 && !loading && (
             <div className="rounded-lg bg-white p-10 text-center ring-1 ring-slate-200">
               <p className="font-medium">Niciun anunț nu corespunde filtrelor.</p>
               <button

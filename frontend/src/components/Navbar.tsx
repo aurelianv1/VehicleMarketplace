@@ -29,8 +29,9 @@ export default function Navbar() {
       <NavLink to="/favorites" className={linkClass} onClick={close}>
         Favorite
       </NavLink>
-      <NavLink to="/profile" className={linkClass} onClick={close}>
-        {user.full_name}
+      <NavLink to="/profile" className={linkClass} onClick={close} title={user.full_name}>
+        {/* Un nume lung nu are voie să împingă butoanele pe două rânduri */}
+        <span className="block truncate md:max-w-[9rem] lg:max-w-[14rem]">{user.full_name}</span>
       </NavLink>
       <button
         type="button"

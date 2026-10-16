@@ -167,6 +167,8 @@ created.add(draftL.id)
 t = await text()
 check('D2 ciornă → „Anunțurile mele” cu mesaj', (await path()) === '/my-listings' && t.includes('salvat ca ciornă') && draftL.status === 'draft')
 check('D3 cardul are eticheta „Ciornă”', (await page.$eval('article', (a) => a.innerText)).includes('Ciornă'))
+await page.reload({ waitUntil: 'networkidle0' })
+check('D4 mesajul „salvat ca ciornă” nu reapare după F5', !(await text()).includes('salvat ca ciornă'))
 
 // ============ E. Anunțurile mele: acțiuni ============
 const card = (id) => `article:has(a[href="/listings/${id}"])`

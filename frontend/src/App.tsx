@@ -1,6 +1,7 @@
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom'
 
 import Navbar from './components/Navbar'
+import ScrollToTop from './components/ScrollToTop'
 import { AuthProvider } from './context/AuthContext'
 import EditListing from './pages/EditListing'
 import Favorites from './pages/Favorites'
@@ -28,6 +29,7 @@ function Layout() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <Routes>
           <Route element={<Layout />}>

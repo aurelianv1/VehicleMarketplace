@@ -11,6 +11,7 @@ import type { PendingImage } from '../components/ImageUploader'
 import ListingFields from '../components/ListingFields'
 import { emptyListingForm, toPayload, validateListing } from '../lib/listingForm'
 import type { ListingFormErrors } from '../lib/listingForm'
+import { usePageTitle } from '../lib/usePageTitle'
 
 const message = (err: unknown, fallback: string) => (err instanceof ApiError ? err.message : fallback)
 
@@ -23,6 +24,7 @@ const message = (err: unknown, fallback: string) => (err instanceof ApiError ? e
  * cu un mesaj, ca să nu-l creeze de două ori apăsând din nou pe buton.
  */
 export default function NewListing() {
+  usePageTitle('Adaugă anunț')
   const navigate = useNavigate()
   const [values, setValues] = useState(emptyListingForm)
   const [errors, setErrors] = useState<ListingFormErrors>({})

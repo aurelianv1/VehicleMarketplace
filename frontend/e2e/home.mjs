@@ -1,4 +1,4 @@
-import { BASE, SCREENSHOTS, launchBrowser } from './config.mjs'
+import { API, BASE, SCREENSHOTS, launchBrowser } from './config.mjs'
 
 let failures = 0
 const check = (name, ok, extra = '') => {
@@ -23,10 +23,17 @@ const settle = async () => {
 const prices = () =>
   page.$$eval('article .text-blue-700', (els) => els.map((e) => Number(e.innerText.replace(/[^\d]/g, ''))))
 
+// Valorile așteptate vin din API, nu din seed: testul merge și cu anunțuri adăugate de mână
+const apiPage = async (q) => (await fetch(`${API}/listings?${q}`)).json()
+const { total, pages } = await apiPage('per_page=12')
+const lastPageCount = total - (pages - 1) * 12
+const bmwCount = (await apiPage('brand=BMW&per_page=60')).total
+const plural = (n) => (n === 1 ? '1 anunț' : n > 0 && (n % 100 === 0 || n % 100 >= 20) ? `${n} de anunțuri` : `${n} anunțuri`)
+
 // 1. Prima pagină
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
 check('12 carduri pe pagina 1', (await cards()) === 12, await cards())
-check('total „30 de anunțuri”', (await text()).includes('30 de anunțuri'))
+check(`total „${plural(total)}”`, (await text()).includes(plural(total)))
 const images = await page.$$eval('article img', (imgs) => imgs.map((i) => [i.complete && i.naturalWidth > 0, i.src]))
 check('toate pozele s-au încărcat', images.every(([ok]) => ok), images.find(([ok]) => !ok)?.[1] ?? '')
 check('URL-uri poze cu /uploads/', images.every(([, src]) => src.startsWith('http://localhost:8000/uploads/listings/')))
@@ -35,15 +42,15 @@ check('card formatat (km, €, etichete RO)', / km/.test(sample) && /€/.test(s
 await page.screenshot({ path: `${SCREENSHOTS}3-home.png` })
 
 // 2. Paginare
-await page.evaluate(() => [...document.querySelectorAll('nav[aria-label=Paginare] button')].find((b) => b.innerText === '3').click())
+await page.evaluate((last) => [...document.querySelectorAll('nav[aria-label=Paginare] button')].find((b) => b.innerText === last).click(), String(pages))
 await settle()
-check('pagina 3 → ?page=3 și 6 carduri', (await search()) === '?page=3' && (await cards()) === 6, `${await search()} / ${await cards()}`)
+check(`ultima pagină → ?page=${pages} și ${lastPageCount} carduri`, (await search()) === `?page=${pages}` && (await cards()) === lastPageCount, `${await search()} / ${await cards()}`)
 
 // 3. Filtru marcă din formular → URL, pagina resetată
 await page.type('input[list=brand-options]', 'BMW')
 await page.click('form button[type=submit]')
 await settle()
-check('filtru BMW → ?brand=BMW, 3 rezultate', (await search()) === '?brand=BMW' && (await cards()) === 3, `${await search()} / ${await cards()}`)
+check(`filtru BMW → ?brand=BMW, ${bmwCount} rezultate`, (await search()) === '?brand=BMW' && (await cards()) === bmwCount, `${await search()} / ${await cards()}`)
 const titles = await page.$$eval('article h2', (h) => h.map((x) => x.innerText))
 check('toate rezultatele sunt BMW', titles.every((t) => /BMW/i.test(t)), titles.join(', '))
 
@@ -51,7 +58,7 @@ check('toate rezultatele sunt BMW', titles.every((t) => /BMW/i.test(t)), titles.
 await page.goBack()
 await settle()
 const brandValue = await page.$eval('input[list=brand-options]', (i) => i.value)
-check('Back → ?page=3, câmpul Marcă gol', (await search()) === '?page=3' && brandValue === '' && (await cards()) === 6, `${await search()} brand="${brandValue}"`)
+check(`Back → ?page=${pages}, câmpul Marcă gol`, (await search()) === `?page=${pages}` && brandValue === '' && (await cards()) === lastPageCount, `${await search()} brand="${brandValue}"`)
 
 // 5. Sortare preț crescător
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
@@ -72,12 +79,20 @@ check(
   `${dieselPrices.join(' ≥ ')} fuel=${fuelSelect}`,
 )
 
+// 6b. Pagină inexistentă dintr-un link vechi + titlul tab-ului
+await page.goto(`${BASE}/?page=99`, { waitUntil: 'networkidle0' })
+check('?page=99 → „Pagina 99 nu există”, nu „niciun anunț”', (await text()).includes('Pagina 99 nu există') && !(await text()).includes('Niciun anunț'))
+await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText === 'Mergi la prima pagină').click())
+await settle()
+check('„Mergi la prima pagină” → 12 carduri', (await search()) === '' && (await cards()) === 12)
+check('titlul tab-ului pe pagina principală', (await page.title()) === 'AutoPiață', await page.title())
+
 // 7. Fără rezultate
 await page.goto(`${BASE}/?brand=Lamborghini`, { waitUntil: 'networkidle0' })
 check('mesaj „Niciun anunț”', (await text()).includes('Niciun anunț nu corespunde filtrelor'))
 await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText === 'Șterge filtrele').click())
 await settle()
-check('„Șterge filtrele” → 30 de anunțuri', (await search()) === '' && (await text()).includes('30 de anunțuri'))
+check(`„Șterge filtrele” → ${plural(total)}`, (await search()) === '' && (await text()).includes(plural(total)))
 
 // 8. Inimă fără cont → login → înapoi pe pagina principală
 await page.click('article button[aria-label="Adaugă la favorite"]')

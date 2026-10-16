@@ -7,9 +7,11 @@ import ErrorMessage from '../components/ErrorMessage'
 import ListingCard from '../components/ListingCard'
 import Spinner from '../components/Spinner'
 import { STATUS_LABELS, pluralListings } from '../lib/format'
+import { usePageTitle } from '../lib/usePageTitle'
 import type { ListingCard as Listing } from '../types'
 
 export default function Favorites() {
+  usePageTitle('Favorite')
   const [listings, setListings] = useState<Listing[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 

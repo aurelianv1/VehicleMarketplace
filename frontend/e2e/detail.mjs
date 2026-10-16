@@ -125,6 +125,16 @@ await page.goto(`${BASE}/listings/${draft.id}`, { waitUntil: 'networkidle0' })
 await settle()
 check('ciornă: anonim → „Anunțul nu există”', (await text()).includes('Anunțul nu există'))
 
+// 5b. Scroll: un anunț deschis din josul listei se deschide sus; titlul tab-ului
+await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+const lastHref = await page.$$eval('article a', (a) => a[a.length - 1].getAttribute('href'))
+await page.click(`article a[href="${lastHref}"]`)
+await page.waitForFunction(() => document.querySelector('aside h1'), { timeout: 5000 }).catch(() => {})
+check('anunț deschis din josul listei → pagina începe sus', (await page.evaluate(() => scrollY)) === 0, await page.evaluate(() => scrollY))
+const h1 = await page.$eval('aside h1', (h) => h.innerText)
+check('titlul tab-ului = titlul anunțului', (await page.title()) === `${h1} · AutoPiață`, await page.title())
+
 // 6. Id inexistent + navigare între anunțuri
 await page.goto(`${BASE}/listings/999999`, { waitUntil: 'networkidle0' })
 check('id inexistent → „Anunțul nu există”', (await text()).includes('Anunțul nu există'))

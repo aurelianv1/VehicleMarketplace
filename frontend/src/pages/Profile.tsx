@@ -7,8 +7,10 @@ import ErrorMessage from '../components/ErrorMessage'
 import FormField from '../components/FormField'
 import { useAuth } from '../context/AuthContext'
 import { formatDate } from '../lib/format'
+import { usePageTitle } from '../lib/usePageTitle'
 
 export default function Profile() {
+  usePageTitle('Profil')
   const { user, setUser } = useAuth()
   const [fullName, setFullName] = useState(user!.full_name)
   const [phone, setPhone] = useState(user!.phone ?? '')
