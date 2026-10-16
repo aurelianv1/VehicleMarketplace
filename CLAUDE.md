@@ -398,7 +398,7 @@ căutare full-text (acum se folosește `ILIKE`), stocare S3/MinIO, rate limiting
 ```bash
 docker compose up -d                    # PostgreSQL pe :5432
 cd backend
-source ../venv/bin/activate
+source .venv/bin/activate              # venv-ul e în backend/.venv
 alembic upgrade head
 python seed.py                          # opțional
 uvicorn app.main:app --reload           # API pe :8000, /docs
