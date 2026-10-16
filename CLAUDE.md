@@ -420,6 +420,7 @@ Alternativă: `docker compose exec db psql -U carmarket -d carmarket`
 
 - Comentariile și mesajele de eroare către utilizator sunt **în română**, cu diacritice.
 - Codul (variabile, funcții, rute, componente) e în **engleză**.
+- Mesajele de commit sunt în **engleză**.
 - **Testează ce scrii** înainte de a spune că e gata: pornește serverul, cheamă
   endpoint-ul, deschide pagina.
 - Nu comite `.env`.
