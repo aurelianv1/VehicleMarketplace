@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../context/AuthContext'
 import { useRealtime } from '../context/RealtimeContext'
-import { APP_NAME } from '../lib/brand'
+import { APP_NAME, APP_NAME_ACCENT, APP_NAME_REST } from '../lib/brand'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `block rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap ${
@@ -79,8 +79,9 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="text-xl font-bold whitespace-nowrap text-blue-700" onClick={close}>
-          {APP_NAME}
+        <Link to="/" className="text-xl font-bold whitespace-nowrap" onClick={close} aria-label={APP_NAME}>
+          {/* amber-600, nu amber-500: pe fundal alb, nuanța mai deschisă ar fi greu de citit */}
+          <span className="text-amber-600">{APP_NAME_ACCENT}</span> <span className="text-slate-900">{APP_NAME_REST}</span>
         </Link>
 
         {/* Cât timp verificăm sesiunea nu afișăm nimic, ca să nu clipească „Autentificare” */}
