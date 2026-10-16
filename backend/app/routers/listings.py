@@ -169,6 +169,12 @@ def update_listing(
     listing = _get_or_404(db, listing_id)
     _require_owner(listing, user)
 
+    # Aceeași regulă ca la /publish: altfel PATCH {"status": "active"} ar ocoli-o
+    if payload.status == ListingStatus.active and not listing.images:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Adaugă cel puțin o poză înainte de publicare"
+        )
+
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(listing, field, value)
 

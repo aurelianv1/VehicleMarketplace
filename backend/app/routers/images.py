@@ -59,7 +59,9 @@ async def upload_images(
             CarImage.listing_id == listing_id
         )
     )
-    next_position = (next_position or -1) + 1
+    # coalesce(..., -1) acoperă deja anunțul fără poze; un `or -1` aici ar transforma
+    # poziția maximă 0 în -1 (0 e „fals” în Python) și a doua poză ar primi tot 0
+    next_position += 1
 
     created: list[CarImage] = []
     for upload in files:
