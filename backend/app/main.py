@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.db.session import engine
-from app.routers import auth, users
+from app.routers import auth, favorites, images, listings, users
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -26,6 +26,9 @@ app.mount("/uploads", StaticFiles(directory=settings.upload_path), name="uploads
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(listings.router)
+app.include_router(images.router)
+app.include_router(favorites.router)
 
 
 @app.get("/health", tags=["system"])
