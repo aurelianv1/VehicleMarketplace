@@ -104,7 +104,9 @@ def list_listings(
         select(Listing)
         .where(*conditions)
         .options(selectinload(Listing.images))
-        .order_by(SORT_OPTIONS[sort])
+        # id-ul departajează valorile egale: fără el, ordinea între pagini nu e garantată
+        # și același anunț poate apărea pe două pagini (sau deloc)
+        .order_by(SORT_OPTIONS[sort], Listing.id.desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
     ).all()
