@@ -51,7 +51,7 @@ VehicleMarketplace/
 │   ├── uploads/listings/{id}/
 │   ├── seed.py
 │   └── requirements.txt
-└── frontend/                # DE CONSTRUIT
+└── frontend/                # React + Vite + TS (gata, cu teste e2e în frontend/e2e/)
 ```
 
 ---
@@ -288,7 +288,7 @@ Nu sunt poze reale de mașini.
 
 ---
 
-# PARTEA 2: Frontend (de construit)
+# PARTEA 2: Frontend (gata, testat — 115 verificări e2e)
 
 ## Setup
 
@@ -403,7 +403,7 @@ alembic upgrade head
 python seed.py                          # opțional
 uvicorn app.main:app --reload           # API pe :8000, /docs
 
-cd ../frontend                          # după ce există
+cd ../frontend
 npm run dev                             # pe :5173
 ```
 
