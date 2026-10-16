@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#e2e8f0"/>
+  <g fill="none" stroke="#94a3b8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M110 190h180l-20-50a20 20 0 0 0-18-12h-104a20 20 0 0 0-18 12z"/>
+    <circle cx="145" cy="195" r="18" fill="#e2e8f0"/>
+    <circle cx="255" cy="195" r="18" fill="#e2e8f0"/>
+  </g>
+  <text x="200" y="250" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#64748b">Fără poză</text>
+</svg>
