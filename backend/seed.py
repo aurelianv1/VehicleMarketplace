@@ -27,6 +27,7 @@ from app.models.enums import (
 )
 from app.models.favorite import Favorite
 from app.models.listing import Listing
+from app.models.message import Conversation, Message
 from app.models.user import User
 from app.services.storage import save_image
 
@@ -127,13 +128,15 @@ def main() -> None:
     db = SessionLocal()
     try:
         print("Șterg datele existente...")
+        db.execute(delete(Message))
+        db.execute(delete(Conversation))
         db.execute(delete(Favorite))
         db.execute(delete(CarImage))
         db.execute(delete(Listing))
         db.execute(delete(User))
         db.commit()
         # Repornim numerotarea, ca id-urile să fie 1, 2, 3...
-        for table in ("favorites", "car_images", "listings", "users"):
+        for table in ("messages", "conversations", "favorites", "car_images", "listings", "users"):
             db.execute(text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1"))
         db.commit()
 

@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.db.session import engine
-from app.routers import auth, favorites, images, listings, users
+from app.routers import auth, conversations, favorites, images, listings, users, ws
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,6 +29,8 @@ app.include_router(users.router)
 app.include_router(listings.router)
 app.include_router(images.router)
 app.include_router(favorites.router)
+app.include_router(conversations.router)
+app.include_router(ws.router)
 
 
 @app.get("/health", tags=["system"])
