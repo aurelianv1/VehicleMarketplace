@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { listingsApi } from '../api/listings'
 import ContactSeller from '../components/ContactSeller'
+import DeleteListingButton from '../components/DeleteListingButton'
 import ErrorMessage from '../components/ErrorMessage'
 import FavoriteButton from '../components/FavoriteButton'
 import ImageGallery from '../components/ImageGallery'
@@ -139,6 +140,8 @@ export default function ListingDetail() {
                 Editează anunțul
               </Link>
             )}
+            {/* Backend-ul permite ștergerea proprietarului și adminului (_require_owner); butonul doar o expune */}
+            {canEdit && <DeleteListingButton key={listing.id} listingId={listing.id} isOwner={isOwner} />}
           </div>
 
           <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-slate-200">

@@ -1,7 +1,7 @@
 // Rulează toate suitele pe rând și afișează un rezumat. Folosire: npm run e2e [-- auth home]
 import { spawnSync } from 'node:child_process'
 
-const all = ['auth', 'home', 'detail', 'crud', 'messages']
+const all = ['auth', 'home', 'detail', 'crud', 'messages', 'admin']
 const suites = process.argv.slice(2).length ? process.argv.slice(2) : all
 const here = new URL('.', import.meta.url).pathname
 const results = []

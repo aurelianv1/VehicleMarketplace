@@ -11,6 +11,7 @@ import ListingCard from '../components/ListingCard'
 import Pagination from '../components/Pagination'
 import Spinner from '../components/Spinner'
 import { useAuth } from '../context/AuthContext'
+import { useFlashNotice } from '../lib/useFlashNotice'
 import { usePageTitle } from '../lib/usePageTitle'
 import { SORT_LABELS, options, pluralListings } from '../lib/format'
 import type { ListingCard as Listing, Page, SortOption } from '../types'
@@ -23,6 +24,7 @@ const isSort = (v: string | null): v is SortOption => v !== null && v in SORT_LA
  */
 export default function Home() {
   usePageTitle(null)
+  const notice = useFlashNotice() // ex. „Anunțul a fost șters.” după o ștergere de administrator
   const { user, initializing } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -131,6 +133,11 @@ export default function Home() {
         </aside>
 
         <section>
+          {notice && (
+            <div role="status" className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              {notice}
+            </div>
+          )}
           <ErrorMessage message={error} />
 
           {loading && !data && <Spinner />}
