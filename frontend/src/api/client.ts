@@ -17,6 +17,9 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
+/** Pentru WebSocket, unde tokenul se trimite în primul mesaj, nu într-un header. */
+export const getAccessToken = () => accessToken
+
 // AuthContext se abonează aici ca să afle când sesiunea a expirat definitiv
 let onSessionExpired: (() => void) | null = null
 

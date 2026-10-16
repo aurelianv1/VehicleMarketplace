@@ -10,7 +10,8 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
 | Bază de date | PostgreSQL 16 (Docker Compose) |
 | Autentificare | JWT (PyJWT) + bcrypt |
 | Imagini | Pillow, stocate pe disc |
-| Teste | 115 verificări end-to-end în Firefox (puppeteer-core) |
+| Timp real | WebSocket (FastAPI) pentru notificările de mesaje |
+| Teste | 142 de verificări end-to-end în Firefox (puppeteer-core) |
 
 <p>
   <img src="docs/screenshots/home.png" alt="Lista de anunțuri cu filtre" width="66%">
@@ -31,6 +32,8 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
   principale, salvare ca ciornă.
 - **Anunțurile mele**: editare, publicare, „vândut”, dezactivare, ștergere.
 - **Favorite**: o inimă pe fiecare anunț și o pagină cu cele salvate.
+- **Mesaje în timp real** între cumpărător și vânzător: mesajele, bulina de
+  necitite și confirmarea „Văzut” apar instant, fără reîncărcarea paginii.
 - **Responsive**: funcționează pe telefon, tabletă și desktop.
 
 ---
@@ -98,13 +101,15 @@ Cu backend-ul și frontend-ul pornite:
 
 ```bash
 cd frontend
-npm run e2e                  # 115 verificări în Firefox headless, ~1,5 minute
+npm run e2e                  # 142 de verificări în Firefox headless, ~2 minute
 E2E_HEADFUL=1 npm run e2e    # cu fereastra browserului vizibilă
 ```
 
 Testele folosesc aplicația ca un utilizator real: completează formulare,
 încarcă poze (inclusiv un fișier fals și unul de 18 MB), verifică ce apare pe
-ecran și ce s-a salvat în bază. Detalii în [`frontend/e2e/README.md`](frontend/e2e/README.md).
+ecran și ce s-a salvat în bază. Testul de mesagerie deschide două ferestre
+(cumpărător și vânzător) și repornește backend-ul la mijloc, ca să verifice
+reconectarea automată. Detalii în [`frontend/e2e/README.md`](frontend/e2e/README.md).
 
 ---
 
@@ -120,6 +125,8 @@ ecran și ce s-a salvat în bază. Detalii în [`frontend/e2e/README.md`](fronte
  └──────────────────────┘                           │ Pillow              └──────────┘
           ▲  <img src=".../uploads/...">            ▼
           └──────────────────────────── backend/uploads/listings/{id}/*.jpg
+          ▲
+          └─ WebSocket /ws: notificări „mesaj nou” / „citit” (doar server → browser)
 ```
 
 ### Structura
@@ -130,12 +137,12 @@ backend/app/
 ├── core/              # config (.env), securitate (bcrypt, JWT), dependențe (utilizatorul curent)
 ├── models/            # tabelele SQLAlchemy
 ├── schemas/           # formatul cererilor și răspunsurilor (Pydantic)
-├── routers/           # auth, users, listings, images, favorites
-└── services/          # storage.py (poze pe disc), listing_service.py
+├── routers/           # auth, users, listings, images, favorites, conversations, ws
+└── services/          # storage.py (poze pe disc), listing_service.py, realtime.py (conexiuni WebSocket)
 
 frontend/src/
 ├── api/               # client.ts (token, refresh, erori) + câte un fișier per resursă
-├── context/           # AuthContext: cine e logat
+├── context/           # AuthContext (cine e logat), RealtimeContext (conexiunea WebSocket)
 ├── routes/            # ProtectedRoute: redirect la /login
 ├── pages/             # câte o pagină per rută
 ├── components/        # ListingCard, Filters, ImageGallery, ImageUploader, …
@@ -159,6 +166,37 @@ sequenceDiagram
     B->>A: GET /favorites (reluată automat)
     A-->>B: 200
 ```
+
+### Mesageria în timp real
+
+```mermaid
+sequenceDiagram
+    participant M as Maria (cumpărător)
+    participant A as API
+    participant I as Ion (vânzător)
+    M->>A: WebSocket /ws + {"type":"auth","token":…}
+    I->>A: WebSocket /ws + {"type":"auth","token":…}
+    M->>A: POST /conversations {listing_id, body}
+    A-->>M: 201 (conversația + mesajul)
+    A--)I: WS {"type":"message", …}
+    Note over I: bulina din meniu crește, fără reload
+    I->>A: GET /conversations/{id} (marchează citite)
+    A--)M: WS {"type":"read", …}
+    Note over M: apare „Văzut”
+```
+
+| Decizie | De ce |
+|---|---|
+| Mesajele se **scriu prin REST**, WebSocket-ul doar **notifică** | Validarea, drepturile și salvarea trec prin același cod ca restul API-ului. Dacă WebSocket-ul cade, nu se pierde nimic: mesajul e în bază și apare la reîncărcare. |
+| Tokenul se trimite în **primul mesaj** pe WebSocket, nu în URL | Browserul nu poate pune `Authorization` pe un WebSocket, iar un URL cu token ajunge în log-urile serverului. Și fiindcă nu folosim cookie-ul, alt site nu poate deschide conexiunea în numele utilizatorului. |
+| **Reconectare automată** cu pauze crescătoare (1s, 2s, 4s… max 15s) | Rețeaua sau serverul pot cădea. După reconectare, paginile își reîncarcă datele ca să prindă mesajele pierdute. |
+| O conversație per (anunț, cumpărător), cu `UNIQUE` în bază | Al doilea „Trimite mesaj” continuă discuția existentă; constrângerea rezolvă și dublu-click-ul. |
+| Doar participanții văd conversația (**404** pentru ceilalți, inclusiv admin) | Mesajele private nu sunt treaba administratorului; 404 în loc de 403 nu dezvăluie ce id-uri există. |
+| Textul mesajului e afișat de React ca **text** | Un `<script>` sau `<img onerror>` trimis ca mesaj apare literal, nu rulează (testat). |
+
+Limitare: conexiunile WebSocket stau în memoria procesului, deci merge cu un
+singur worker uvicorn. Cu mai multe procese ar fi nevoie de un canal comun
+(ex. Redis pub/sub).
 
 ### Fluxul de publicare
 
@@ -285,6 +323,17 @@ Limite: 5 MB per poză, 15 poze per anunț, JPEG / PNG / WEBP (configurabile în
 | POST | `/favorites/{listing_id}` | Salvează |
 | DELETE | `/favorites/{listing_id}` | Scoate |
 
+### Mesaje
+| Metodă | Rută | Descriere |
+|---|---|---|
+| GET | `/conversations` | Conversațiile mele (ultimul mesaj, necitite) |
+| GET | `/conversations/unread-count` | Total necitite (bulina din meniu) |
+| POST | `/conversations` | Primul mesaj către vânzător `{listing_id, body}` (continuă discuția dacă există) |
+| GET | `/conversations/{id}` | Firul complet; marchează ca citite mesajele primite |
+| POST | `/conversations/{id}/messages` | Trimite `{body}` (1–2000 de caractere) |
+| POST | `/conversations/{id}/read` | Marchează ca citit |
+| WS | `/ws` | Notificări: `message`, `read`; primul mesaj trimis e `{"type":"auth","token":…}` |
+
 Erorile au forma `{"detail": "mesaj în română"}`. La 422 (date invalide),
 `detail` e o listă cu câmpurile greșite.
 
@@ -292,7 +341,8 @@ Erorile au forma `{"detail": "mesaj în română"}`. La 422 (date invalide),
 
 ## Limitări și dezvoltări viitoare
 
-- **Mesagerie** între cumpărător și vânzător (WebSocket); acum contactul e prin telefon.
+- **Mai multe procese backend** cu mesagerie: Redis pub/sub între ele (acum: un singur proces).
+- **Notificări** pe email sau push pentru mesajele primite cât utilizatorul e offline.
 - **Panou de administrare**: adminul poate șterge anunțuri doar prin API.
 - **Verificarea emailului** la înregistrare și resetarea parolei.
 - **Căutare full-text** (PostgreSQL `tsvector`); acum se folosește `ILIKE`.

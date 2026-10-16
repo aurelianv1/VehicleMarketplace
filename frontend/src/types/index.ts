@@ -100,3 +100,38 @@ export type ListingPayload = {
   description: string | null
   city: string
 }
+
+export type Message = {
+  id: number
+  conversation_id: number
+  sender_id: number
+  body: string
+  created_at: string
+  read_at: string | null // null = destinatarul nu l-a citit încă
+}
+
+export type Conversation = {
+  id: number
+  listing: {
+    id: number
+    title: string
+    price: string
+    currency: Currency
+    status: ListingStatus
+    main_image: string | null
+  }
+  other_user: { id: number; full_name: string }
+  role: 'buyer' | 'seller'
+  last_message: Message | null
+  unread_count: number
+  last_message_at: string
+}
+
+export type ConversationDetail = Conversation & { messages: Message[] }
+
+/** Evenimentele primite pe WebSocket (vezi backend/app/routers/conversations.py) */
+export type RealtimeEvent =
+  | { type: 'message'; message: Message }
+  | { type: 'read'; conversation_id: number; reader_id: number; message_ids: number[] }
+  // generat local după o reconectare: paginile își reîncarcă datele, ca să prindă ce s-a pierdut
+  | { type: 'reconnected' }

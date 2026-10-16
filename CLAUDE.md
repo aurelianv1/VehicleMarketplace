@@ -73,6 +73,12 @@ VehicleMarketplace/
 
 **favorites** — `id`, `user_id`, `listing_id`, `created_at`, unic pe (user_id, listing_id)
 
+**conversations** — `id`, `listing_id`, `buyer_id`, `seller_id` (toate FK cascade),
+`created_at`, `last_message_at`, unic pe (listing_id, buyer_id)
+
+**messages** — `id`, `conversation_id` (FK cascade), `sender_id`, `body` (max 2000),
+`created_at`, `read_at` (null = necitit)
+
 Indexuri pe: `brand`, `model`, `year`, `price`, `mileage_km`, `city`, `status`,
 `fuel_type`, `transmission`, plus index compus `(status, created_at)`.
 
@@ -135,6 +141,16 @@ Parametri la `GET /listings`:
 | GET | `/favorites` → listă de `ListingCard` |
 | POST | `/favorites/{listing_id}` → `{is_favorite: true}` |
 | DELETE | `/favorites/{listing_id}` → `{is_favorite: false}` |
+
+### Mesaje (WebSocket pentru notificări)
+| Metodă | Rută |
+|---|---|
+| GET | `/conversations` · `/conversations/unread-count` · `/conversations/{id}` |
+| POST | `/conversations` `{listing_id, body}` · `/conversations/{id}/messages` `{body}` · `/conversations/{id}/read` |
+| WS | `/ws` — primul mesaj `{"type":"auth","token":…}`; apoi primește `message` / `read` |
+
+Mesajele se scriu prin REST; WebSocket-ul doar notifică. Doar participanții au acces (404 altfel).
+Conexiunile stau în memorie → un singur worker uvicorn.
 
 ## Forma răspunsurilor (pentru tipurile TypeScript)
 
@@ -288,7 +304,7 @@ Nu sunt poze reale de mașini.
 
 ---
 
-# PARTEA 2: Frontend (gata, testat — 115 verificări e2e)
+# PARTEA 2: Frontend (gata, testat — 142 de verificări e2e)
 
 ## Setup
 
@@ -390,7 +406,7 @@ Dacă al doilea pas eșuează, anunțul rămâne draft și apare în „Anunțur
 # Lăsat în afara scopului
 
 De menționat la prezentare ca „dezvoltări viitoare":
-mesagerie în timp real (WebSocket), panou de administrare, verificare de email,
+panou de administrare, verificare de email,
 căutare full-text (acum se folosește `ILIKE`), stocare S3/MinIO, rate limiting.
 
 # Cum pornesc totul

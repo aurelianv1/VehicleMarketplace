@@ -19,7 +19,22 @@ const ion = await (await fetch(`${API}/auth/login`, {
   body: JSON.stringify({ email: 'ion@example.com', password: 'parola1234' }),
 })).json()
 const ionPhone = (await (await fetch(`${API}/users/me`, { headers: { Authorization: `Bearer ${ion.access_token}` } })).json()).phone
-const ionListing = (await (await fetch(`${API}/listings/mine`, { headers: { Authorization: `Bearer ${ion.access_token}` } })).json())[0]
+const ionListings = await (await fetch(`${API}/listings/mine`, { headers: { Authorization: `Bearer ${ion.access_token}` } })).json()
+// Ciorne rămase de la o rulare întreruptă: le ștergem, altfel ar încurca testul
+for (const l of ionListings.filter((l) => l.title === 'Ciornă de test e2e')) {
+  await fetch(`${API}/listings/${l.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${ion.access_token}` } })
+}
+// Un anunț activ cu cel puțin 3 poze (pentru testele de galerie). Citit ca proprietar,
+// deci nu îi crește numărul de vizualizări.
+let ionListing = null
+for (const l of ionListings.filter((l) => l.status === 'active')) {
+  const d = await (await fetch(`${API}/listings/${l.id}`, { headers: { Authorization: `Bearer ${ion.access_token}` } })).json()
+  if (d.images.length >= 3) {
+    ionListing = l
+    break
+  }
+}
+if (!ionListing) throw new Error('Ion nu are niciun anunț activ cu cel puțin 3 poze (rulează seed.py)')
 const draft = await (await fetch(`${API}/listings`, {
   method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ion.access_token}` },
   body: JSON.stringify({ title: 'Ciornă de test e2e', brand: 'Dacia', model: 'Logan', year: 2015, price: 4500, mileage_km: 120000, fuel_type: 'diesel', transmission: 'manual', city: 'Arad' }),
@@ -79,7 +94,7 @@ await page.keyboard.press('Escape')
 check('Escape închide ecranul complet', (await page.$('[role=dialog]')) === null)
 
 // 3. Login din pagina de detaliu → înapoi pe anunț → telefonul
-await clickText('Autentifică-te ca să vezi telefonul')
+await clickText('Autentifică-te ca să vezi telefonul sau să trimiți un mesaj')
 await page.waitForSelector('#email')
 await page.type('#email', 'maria@example.com')
 await page.type('#password', 'parola1234')

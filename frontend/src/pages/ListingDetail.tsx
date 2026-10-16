@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
 import { listingsApi } from '../api/listings'
+import ContactSeller from '../components/ContactSeller'
 import ErrorMessage from '../components/ErrorMessage'
 import FavoriteButton from '../components/FavoriteButton'
 import ImageGallery from '../components/ImageGallery'
@@ -154,7 +155,7 @@ export default function ListingDetail() {
                     state={{ from: location }}
                     className="block rounded-md bg-blue-600 py-2 text-center text-sm font-semibold text-white hover:bg-blue-700"
                   >
-                    Autentifică-te ca să vezi telefonul
+                    Autentifică-te ca să vezi telefonul sau să trimiți un mesaj
                   </Link>
                 ) : !listing.seller_phone ? (
                   <p className="text-sm text-slate-500">Vânzătorul nu a adăugat un număr de telefon.</p>
@@ -174,6 +175,11 @@ export default function ListingDetail() {
                     Arată telefonul
                   </button>
                 )}
+              </div>
+            )}
+            {user && !isOwner && listing.status === 'active' && (
+              <div className="mt-3">
+                <ContactSeller listingId={listing.id} />
               </div>
             )}
           </div>
