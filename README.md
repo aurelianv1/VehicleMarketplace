@@ -40,7 +40,7 @@ uvicorn app.main:app --reload
 Verifică la <http://localhost:8000/health> — trebuie să răspundă `{"api":"ok","database":"ok"}`.
 
 Documentația interactivă: <http://localhost:8000/docs>
-pgAdmin: <http://localhost:5050> — `admin@carmarket.local` / `admin`
+pgAdmin: <http://localhost:5050> — `admin@example.com` / `admin`
 
 ### Conturi de test (după `seed.py`)
 
