@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { API, BASE, REPO_ROOT, SCREENSHOTS, launchBrowser } from './config.mjs'
+import { API, APP_NAME, BASE, REPO_ROOT, SCREENSHOTS, launchBrowser } from './config.mjs'
 
 let failures = 0
 const check = (name, ok, extra = '') => {
@@ -148,7 +148,7 @@ await page.click(`article a[href="${lastHref}"]`)
 await page.waitForFunction(() => document.querySelector('aside h1'), { timeout: 5000 }).catch(() => {})
 check('anunț deschis din josul listei → pagina începe sus', (await page.evaluate(() => scrollY)) === 0, await page.evaluate(() => scrollY))
 const h1 = await page.$eval('aside h1', (h) => h.innerText)
-check('titlul tab-ului = titlul anunțului', (await page.title()) === `${h1} · AutoPiață`, await page.title())
+check('titlul tab-ului = titlul anunțului', (await page.title()) === `${h1} · ${APP_NAME}`, await page.title())
 
 // 6. Id inexistent + navigare între anunțuri
 await page.goto(`${BASE}/listings/999999`, { waitUntil: 'networkidle0' })

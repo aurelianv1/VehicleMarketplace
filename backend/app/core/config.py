@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    PROJECT_NAME: str = "Car Marketplace API"
+    PROJECT_NAME: str = "Golden Marketplace API"
     API_V1_PREFIX: str = ""
 
     DATABASE_URL: str = "postgresql+psycopg://carmarket:carmarket@localhost:5432/carmarket"

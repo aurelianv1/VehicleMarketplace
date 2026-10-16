@@ -1,4 +1,4 @@
-import { API, BASE, SCREENSHOTS, launchBrowser } from './config.mjs'
+import { API, APP_NAME, BASE, SCREENSHOTS, launchBrowser } from './config.mjs'
 
 let failures = 0
 const check = (name, ok, extra = '') => {
@@ -85,7 +85,7 @@ check('?page=99 → „Pagina 99 nu există”, nu „niciun anunț”', (await 
 await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText === 'Mergi la prima pagină').click())
 await settle()
 check('„Mergi la prima pagină” → 12 carduri', (await search()) === '' && (await cards()) === 12)
-check('titlul tab-ului pe pagina principală', (await page.title()) === 'AutoPiață', await page.title())
+check('titlul tab-ului pe pagina principală', (await page.title()) === APP_NAME, await page.title())
 
 // 7. Fără rezultate
 await page.goto(`${BASE}/?brand=Lamborghini`, { waitUntil: 'networkidle0' })

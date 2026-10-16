@@ -1,4 +1,4 @@
-# AutoPiață — marketplace de mașini
+# Golden Marketplace — marketplace de mașini
 
 Proiect de laborator: o platformă unde utilizatorii publică anunțuri de vânzare
 auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favorite.

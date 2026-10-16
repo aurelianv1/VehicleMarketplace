@@ -3,9 +3,10 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../context/AuthContext'
 import { useRealtime } from '../context/RealtimeContext'
+import { APP_NAME } from '../lib/brand'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-md px-3 py-2 text-sm font-medium ${
+  `block rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap ${
     isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
   }`
 
@@ -43,19 +44,19 @@ export default function Navbar() {
       </NavLink>
       <NavLink to="/profile" className={linkClass} onClick={close} title={user.full_name}>
         {/* Un nume lung nu are voie să împingă butoanele pe două rânduri */}
-        <span className="block truncate md:max-w-[9rem] lg:max-w-[14rem]">{user.full_name}</span>
+        <span className="block truncate lg:max-w-[10rem] xl:max-w-[14rem]">{user.full_name}</span>
       </NavLink>
       <button
         type="button"
         onClick={handleLogout}
-        className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 md:w-auto"
+        className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 lg:w-auto"
       >
         Ieșire
       </button>
       <Link
         to="/listings/new"
         onClick={close}
-        className="block rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-blue-700"
+        className="block rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-semibold whitespace-nowrap text-white hover:bg-blue-700"
       >
         + Adaugă anunț
       </Link>
@@ -78,17 +79,17 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="text-xl font-bold text-blue-700" onClick={close}>
-          AutoPiață
+        <Link to="/" className="text-xl font-bold whitespace-nowrap text-blue-700" onClick={close}>
+          {APP_NAME}
         </Link>
 
         {/* Cât timp verificăm sesiunea nu afișăm nimic, ca să nu clipească „Autentificare” */}
         {!initializing && (
           <>
-            <div className="hidden items-center gap-1 md:flex">{links}</div>
+            <div className="hidden items-center gap-1 lg:flex">{links}</div>
             <button
               type="button"
-              className="relative rounded-md p-2 text-slate-700 hover:bg-slate-100 md:hidden"
+              className="relative rounded-md p-2 text-slate-700 hover:bg-slate-100 lg:hidden"
               onClick={() => setOpen((v) => !v)}
               aria-label="Meniu"
               aria-expanded={open}
@@ -102,7 +103,7 @@ export default function Navbar() {
         )}
       </nav>
 
-      {open && <div className="space-y-1 border-t border-slate-200 px-4 py-3 md:hidden">{links}</div>}
+      {open && <div className="space-y-1 border-t border-slate-200 px-4 py-3 lg:hidden">{links}</div>}
     </header>
   )
 }

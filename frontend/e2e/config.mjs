@@ -6,6 +6,7 @@ import puppeteer from 'puppeteer-core'
 
 export const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:5173'
 export const API = process.env.E2E_API_URL ?? 'http://localhost:8000'
+export const APP_NAME = 'Golden Marketplace' // ca în src/lib/brand.ts
 
 const here = new URL('.', import.meta.url).pathname
 export const REPO_ROOT = new URL('../../', import.meta.url).pathname

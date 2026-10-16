@@ -1,4 +1,4 @@
-# Frontend AutoPiață
+# Frontend Golden Marketplace
 
 React + TypeScript + Vite + Tailwind CSS. Pornire, arhitectură și decizii:
 vezi [README-ul principal](../README.md).
