@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import { AuthProvider } from './context/AuthContext'
 import ComingSoon from './pages/ComingSoon'
 import Home from './pages/Home'
+import ListingDetail from './pages/ListingDetail'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Register from './pages/Register'
@@ -28,7 +29,7 @@ export default function App() {
           <Route element={<Layout />}>
             {/* Publice */}
             <Route path="/" element={<Home />} />
-            <Route path="/listings/:id" element={<ComingSoon title="Detaliu anunț" />} />
+            <Route path="/listings/:id" element={<ListingDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
