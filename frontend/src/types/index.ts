@@ -80,3 +80,23 @@ export type ListingDetail = Omit<ListingCard, 'main_image'> & {
   images: CarImage[]
   seller_phone: string | null // null dacă vizitatorul nu e autentificat
 }
+
+/** Corpul pentru POST /listings și PATCH /listings/{id} */
+export type ListingPayload = {
+  title: string
+  brand: string
+  model: string
+  year: number
+  price: string
+  currency: Currency
+  mileage_km: number
+  fuel_type: FuelType
+  transmission: Transmission
+  body_type: BodyType | null
+  engine_capacity: number | null
+  horsepower: number | null
+  color: string | null
+  condition: CarCondition
+  description: string | null
+  city: string
+}

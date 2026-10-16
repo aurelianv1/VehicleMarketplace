@@ -1,4 +1,4 @@
-import type { ListingCard, ListingDetail, Page } from '../types'
+import type { ListingCard, ListingDetail, ListingPayload, ListingStatus, Page } from '../types'
 import { api } from './client'
 
 /** Parametrii acceptați de GET /listings; restul cheilor din URL sunt ignorate. */
@@ -42,4 +42,15 @@ export const listingsApi = {
   get: getListing,
 
   mine: () => api<ListingCard[]>('/listings/mine'),
+
+  /** Anunțul se creează mereu ca ciornă (draft); se publică după ce are poze. */
+  create: (payload: ListingPayload) => api<ListingDetail>('/listings', { method: 'POST', body: payload }),
+
+  update: (id: number, payload: Partial<ListingPayload> & { status?: ListingStatus }) =>
+    api<ListingDetail>(`/listings/${id}`, { method: 'PATCH', body: payload }),
+
+  /** Eșuează cu 400 dacă anunțul nu are nicio poză. */
+  publish: (id: number) => api<ListingDetail>(`/listings/${id}/publish`, { method: 'POST' }),
+
+  remove: (id: number) => api<void>(`/listings/${id}`, { method: 'DELETE' }),
 }
