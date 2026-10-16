@@ -11,7 +11,7 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
 | Autentificare | JWT (PyJWT) + bcrypt |
 | Imagini | Pillow, stocate pe disc |
 | Timp real | WebSocket (FastAPI) pentru notificările de mesaje |
-| Teste | 142 de verificări end-to-end în Firefox (puppeteer-core) |
+| Teste | 155 de verificări end-to-end în Firefox (puppeteer-core) |
 
 <p>
   <img src="docs/screenshots/home.png" alt="Lista de anunțuri cu filtre" width="66%">
@@ -31,6 +31,8 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
   poze (cele de peste 5 MB se micșorează automat în browser), alegerea pozei
   principale, salvare ca ciornă.
 - **Anunțurile mele**: editare, publicare, „vândut”, dezactivare, ștergere.
+- **Administrator**: poate edita și șterge orice anunț, din pagina anunțului (cu confirmare).
+  Nu are acces la mesajele private dintre utilizatori.
 - **Favorite**: o inimă pe fiecare anunț și o pagină cu cele salvate.
 - **Mesaje în timp real** între cumpărător și vânzător: mesajele, bulina de
   necitite și confirmarea „Văzut” apar instant, fără reîncărcarea paginii.
@@ -89,7 +91,7 @@ de sesiune e legat de numele host-ului, iar API-ul rulează pe `localhost:8000`.
 |---|---|---|
 | ion@example.com | parola1234 | utilizator (are anunțuri) |
 | maria@example.com | parola1234 | utilizator |
-| admin@example.com | parola1234 | administrator (poate șterge orice anunț) |
+| admin@example.com | parola1234 | administrator (poate edita și șterge orice anunț, din pagina lui) |
 
 > ⚠️ `seed.py` **șterge toate datele** (inclusiv conturile și anunțurile create
 > din interfață) înainte să le recreeze. Pozele generate sunt plăci colorate cu
@@ -101,7 +103,7 @@ Cu backend-ul și frontend-ul pornite:
 
 ```bash
 cd frontend
-npm run e2e                  # 142 de verificări în Firefox headless, ~2 minute
+npm run e2e                  # 155 de verificări în Firefox headless, ~2 minute
 E2E_HEADFUL=1 npm run e2e    # cu fereastra browserului vizibilă
 ```
 
@@ -343,7 +345,10 @@ Erorile au forma `{"detail": "mesaj în română"}`. La 422 (date invalide),
 
 - **Mai multe procese backend** cu mesagerie: Redis pub/sub între ele (acum: un singur proces).
 - **Notificări** pe email sau push pentru mesajele primite cât utilizatorul e offline.
-- **Panou de administrare**: adminul poate șterge anunțuri doar prin API.
+- **Panou de administrare**: statistici, listă cu toate anunțurile (ascundere / ștergere),
+  blocarea conturilor (coloana `is_active` există deja). Acum adminul editează și șterge
+  anunțuri din pagina fiecăruia.
+- **Rapoarte de la utilizatori** („Raportează anunțul”) cu o listă de moderare.
 - **Verificarea emailului** la înregistrare și resetarea parolei.
 - **Căutare full-text** (PostgreSQL `tsvector`); acum se folosește `ILIKE`.
 - **Conversie EUR/RON** la filtrul de preț; acum se compară doar numărul.

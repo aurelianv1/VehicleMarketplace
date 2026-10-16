@@ -304,7 +304,7 @@ Nu sunt poze reale de mașini.
 
 ---
 
-# PARTEA 2: Frontend (gata, testat — 142 de verificări e2e)
+# PARTEA 2: Frontend (gata, testat — 155 de verificări e2e)
 
 ## Setup
 
