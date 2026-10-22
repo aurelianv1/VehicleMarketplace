@@ -1,0 +1,17 @@
+# Ce NU intră în imaginea Docker: secrete, dependențe instalate local, date locale
+.env
+**/.env
+.git
+.github
+.obsidian
+*.pdf
+**/node_modules
+**/dist
+**/.venv
+**/venv
+**/__pycache__
+backend/uploads/*
+backend/logs
+frontend/e2e/screenshots
+frontend/e2e/fixtures/mare.png
+docs

@@ -12,7 +12,7 @@ await page.setViewport({ width: 1366, height: 900 })
 const consoleErrors = []
 page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()))
 const apiCalls = []
-page.on('request', (r) => r.url().startsWith('http://localhost:8000/') && apiCalls.push(`${r.method()} ${r.url().slice(21)}`))
+page.on('request', (r) => r.url().startsWith(`${API}/`) && apiCalls.push(`${r.method()} ${r.url().slice(API.length)}`))
 
 const text = () => page.evaluate(() => document.body.innerText)
 const search = () => page.evaluate(() => location.search)
@@ -44,7 +44,7 @@ await page.evaluate(async () => {
 })
 const images = await page.$$eval('article img', (imgs) => imgs.map((i) => [i.complete && i.naturalWidth > 0, i.src]))
 check('toate pozele s-au încărcat', images.every(([ok]) => ok), images.find(([ok]) => !ok)?.[1] ?? '')
-check('URL-uri poze cu /uploads/', images.every(([, src]) => src.startsWith('http://localhost:8000/uploads/listings/')))
+check('URL-uri poze cu /uploads/', images.every(([, src]) => src.startsWith(`${API}/uploads/listings/`)))
 const sample = await page.$eval('article', (a) => a.innerText)
 check('card formatat (km, €, etichete RO)', / km/.test(sample) && /€/.test(sample) && /(Benzină|Diesel|Hibrid|Electric|GPL)/.test(sample), sample.replace(/\n/g, ' | '))
 await page.screenshot({ path: `${SCREENSHOTS}3-home.png` })

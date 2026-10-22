@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 
-import { BASE, REPO_ROOT, SCREENSHOTS, launchBrowser, solveCaptcha } from './config.mjs'
+import { API, BASE, REPO_ROOT, SCREENSHOTS, launchBrowser, solveCaptcha } from './config.mjs'
 
 let failures = 0
 const check = (name, ok, extra = '') => {
@@ -102,7 +102,7 @@ check('după o greșeală se încarcă automat un cod nou', secondCaptcha !== fi
 const reuse = await page.evaluate(async (args) => {
   const r = await fetch(`${args.api}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'reuse@example.com', password: 'parola1234', full_name: 'Robot', captcha_token: args.token, captcha_answer: 'ZZZZ' }) })
   return (await r.json()).detail
-}, { api: 'http://localhost:8000', token: firstCaptcha })
+}, { api: API, token: firstCaptcha })
 check('un cod deja folosit nu mai e acceptat', reuse.includes('deja folosit'), reuse)
 await typeCaptcha(solveCaptcha(secondCaptcha))
 await page.click('button[type=submit]')

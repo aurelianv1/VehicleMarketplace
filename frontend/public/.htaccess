@@ -1,0 +1,79 @@
+# .htaccess: reguli Apache pentru fișierele publicate ale aplicației (folderul web).
+# Vite copiază fișierul din public/ în dist/, iar Apache îl citește la fiecare cerere
+# (site.conf are AllowOverride All pentru acest folder).
+
+# ---------------------------------------------------------------------------
+# 1. Resurse interzise
+# ---------------------------------------------------------------------------
+
+# Fără listarea conținutului unui folder fără index.html
+Options -Indexes
+
+# Fișierele ascunse (.env, .git, .htaccess însuși, .DS_Store…): 403 pentru oricine.
+# Excepție: /.well-known/ (folosit standard pentru certificate și verificări de domeniu)
+RedirectMatch 403 "^/(?!\.well-known/)(.*/)?\."
+
+# Fișiere care n-au ce căuta pe un server public, chiar dacă ar ajunge aici din greșeală:
+# configurări, cod sursă, copii de siguranță, baze de date, jurnale, hărți de cod (source maps)
+<FilesMatch "\.(env|ini|conf|cfg|log|sql|sqlite3?|db|bak|backup|old|orig|swp|py|pyc|sh|ts|tsx|map|lock|ya?ml|toml|md)$">
+    Require all denied
+</FilesMatch>
+
+# Fișierele de proiect cunoscute, după nume
+<FilesMatch "^(package(-lock)?\.json|composer\.(json|lock)|Dockerfile|docker-compose\.ya?ml|requirements.*\.txt|alembic\.ini)$">
+    Require all denied
+</FilesMatch>
+
+# Fișierele statice se citesc doar (GET/HEAD); orice altă metodă e refuzată.
+# Cererile care modifică date merg la API (/api/…), care nu e un folder pe disc.
+<LimitExcept GET HEAD OPTIONS>
+    Require all denied
+</LimitExcept>
+
+# ---------------------------------------------------------------------------
+# 2. Antete de securitate pentru pagina aplicației
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    # Ce poate încărca pagina: doar resurse de pe același domeniu ('self' include și
+    # WebSocket-ul propriu). Fără scripturi inline. CAPTCHA și previzualizările pozelor
+    # sunt data:/blob:; style-src permite atributul style (caruselul îl folosește)
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    # Browserul folosește doar HTTPS pentru acest domeniu, un an
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    # Pagina nu poate fi pusă într-un iframe pe alt site (clickjacking)
+    Header always set X-Frame-Options "DENY"
+    # Browserul nu „ghicește” tipul fișierelor (un .jpg nu poate fi rulat ca script)
+    Header always set X-Content-Type-Options "nosniff"
+    # Alte site-uri văd doar domeniul de unde vine vizitatorul, nu adresa completă
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Funcții ale browserului de care aplicația nu are nevoie: oprite
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), usb=(), payment=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always unset X-Powered-By
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# 3. Cache
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    # Fișierele din assets/ au în nume un hash al conținutului: se pot păstra un an
+    <FilesMatch "\.(js|css|svg|png|jpe?g|webp|woff2?)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # index.html se verifică mereu, ca după o publicare nouă vizitatorii să primească versiunea nouă
+    <FilesMatch "^(index\.html)?$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# 4. Rutele aplicației React (/listings/5, /favorites…) nu sunt fișiere pe disc:
+#    tot ce nu există se servește cu index.html, iar React Router afișează pagina potrivită
+# ---------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^index\.html$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>

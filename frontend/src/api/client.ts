@@ -1,6 +1,8 @@
 import type { TokenPair } from '../types'
 
-export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+// În dezvoltare API-ul e pe alt port (VITE_API_URL din .env). În producție, Apache servește
+// aplicația și API-ul pe același domeniu, cu API-ul sub /api (build-ul se face fără VITE_API_URL).
+export const API_URL = (import.meta.env.VITE_API_URL || `${window.location.origin}/api`).replace(/\/$/, '')
 
 /** API-ul întoarce căi relative ("listings/42/abc_medium.jpg"), deci le prefixăm aici. */
 export const imageUrl = (path: string | null | undefined) =>
@@ -87,7 +89,8 @@ type RequestOptions = {
 }
 
 function buildUrl(path: string, query?: RequestOptions['query']) {
-  const url = new URL(path, API_URL)
+  // Concatenare, nu new URL(path, API_URL): cu baza „…/api”, un path care începe cu „/” ar pierde „/api”
+  const url = new URL(API_URL + path)
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, String(value))

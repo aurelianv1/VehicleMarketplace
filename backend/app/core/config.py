@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -40,6 +41,16 @@ class Settings(BaseSettings):
     REFRESH_COOKIE_PATH: str = "/auth"
     # True în producție (HTTPS): cookie-ul de refresh pleacă doar pe conexiuni criptate
     COOKIE_SECURE: bool = False
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def use_psycopg_driver(cls, url: str) -> str:
+        # Render (și alți furnizori) dau adresa ca postgres://...; SQLAlchemy cu psycopg 3
+        # are nevoie de postgresql+psycopg://...
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix):]
+        return url
 
     @property
     def cors_origins_list(self) -> list[str]:
