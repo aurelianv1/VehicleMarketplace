@@ -1,0 +1,4 @@
+# Doar pentru dezvoltare și CI (testele unitare)
+-r requirements.txt
+pytest>=8.3
+httpx2>=2.16  # clientul HTTP folosit de TestClient
