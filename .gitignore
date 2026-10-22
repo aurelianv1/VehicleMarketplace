@@ -10,3 +10,7 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Notițe locale (Obsidian) și documente de curs
+.obsidian/
+*.pdf

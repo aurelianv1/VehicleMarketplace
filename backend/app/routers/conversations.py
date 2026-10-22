@@ -32,8 +32,8 @@ def _get_for_participant(db: Session, conversation_id: int, user: User) -> Conve
         .where(Conversation.id == conversation_id)
         .options(
             selectinload(Conversation.listing).selectinload(Listing.images),
+            selectinload(Conversation.listing).selectinload(Listing.owner),
             selectinload(Conversation.buyer),
-            selectinload(Conversation.seller),
         )
     )
     # Același 404 și pentru „nu există” și pentru „nu e a ta”: nu dezvăluim ce id-uri există.
@@ -114,11 +114,12 @@ def _notify_read(background: BackgroundTasks, conversation: Conversation, reader
 def list_conversations(db: DbSession, user: CurrentUser) -> list[ConversationRead]:
     conversations = db.scalars(
         select(Conversation)
-        .where(or_(Conversation.buyer_id == user.id, Conversation.seller_id == user.id))
+        .join(Listing, Listing.id == Conversation.listing_id)
+        .where(or_(Conversation.buyer_id == user.id, Listing.user_id == user.id))
         .options(
             selectinload(Conversation.listing).selectinload(Listing.images),
+            selectinload(Conversation.listing).selectinload(Listing.owner),
             selectinload(Conversation.buyer),
-            selectinload(Conversation.seller),
         )
         .order_by(Conversation.last_message_at.desc(), Conversation.id.desc())
     ).all()
@@ -158,8 +159,9 @@ def unread_count(db: DbSession, user: CurrentUser) -> dict[str, int]:
     count = db.scalar(
         select(func.count(Message.id))
         .join(Conversation, Conversation.id == Message.conversation_id)
+        .join(Listing, Listing.id == Conversation.listing_id)
         .where(
-            or_(Conversation.buyer_id == user.id, Conversation.seller_id == user.id),
+            or_(Conversation.buyer_id == user.id, Listing.user_id == user.id),
             Message.sender_id != user.id,
             Message.read_at.is_(None),
         )
@@ -186,7 +188,7 @@ def start_conversation(
     if conversation is None:
         if listing.status != ListingStatus.active:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Anunțul nu mai este activ")
-        conversation = Conversation(listing_id=listing.id, buyer_id=user.id, seller_id=listing.user_id)
+        conversation = Conversation(listing_id=listing.id, buyer_id=user.id)
         db.add(conversation)
         try:
             db.commit()
