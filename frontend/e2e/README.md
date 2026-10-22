@@ -1,6 +1,6 @@
 # Teste end-to-end
 
-155 de verificări automate care rulează aplicația într-un **Firefox real** (fără
+167 de verificări automate care rulează aplicația într-un **Firefox real** (fără
 interfață), exact cum ar folosi-o un utilizator: completează formulare, încarcă
 poze, apasă butoane, verifică ce apare pe ecran și ce s-a salvat în baza de date.
 
@@ -8,9 +8,9 @@ poze, apasă butoane, verifică ce apare pe ecran și ce s-a salvat în baza de 
 
 | Suită | Verificări | Ce testează |
 |---|---|---|
-| `auth.mjs` | 15 | login, register, logout, sesiunea păstrată după F5, tokenul **nu** e în `localStorage`, cookie-ul de refresh nu e accesibil din JS |
-| `home.mjs` | 25 | listă, paginare, filtre în URL, butonul Back, sortare, favorite, **refresh automat la 401** (token expirat simulat) |
-| `detail.mjs` | 31 | galerie, telefonul ascuns pentru anonimi, vizualizări numărate o singură dată, ciorne vizibile doar proprietarului, 404 |
+| `auth.mjs` | 20 | login, register, logout, sesiunea păstrată după F5, tokenul **nu** e în `localStorage`, cookie-ul de refresh nu e accesibil din JS, CAPTCHA (greșit, lipsă, refolosit) |
+| `home.mjs` | 30 | listă, paginare, filtre în URL, butonul Back, sortare, carusel (derulare automată, pauză la hover), favorite, **refresh automat la 401** (token expirat simulat) |
+| `detail.mjs` | 33 | galerie, telefonul ascuns pentru anonimi, vizualizări numărate o singură dată, ciorne vizibile doar proprietarului, 404 |
 | `crud.mjs` | 44 | adăugare în 3 pași, fișier fals respins de backend, poză de ~18 MB micșorată în browser, editare, „Anunțurile mele”, favorite, profil |
 | `admin.mjs` | 13 | butonul de ștergere vizibil doar adminului și proprietarului, confirmare, pozele șterse de pe disc, redirect cu mesaj |
 | `messages.mjs` | 27 | două ferestre (cumpărător și vânzător): mesaje, bulina de necitite și „Văzut” **fără reload**, HTML afișat ca text, **reconectare după repornirea backend-ului**, mobil, acces interzis altor utilizatori |
