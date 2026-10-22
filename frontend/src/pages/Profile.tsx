@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
+import { paymentsApi } from '../api/payments'
 import ErrorMessage from '../components/ErrorMessage'
 import FormField from '../components/FormField'
 import { useAuth } from '../context/AuthContext'
-import { formatDate } from '../lib/format'
+import { PAYMENT_STATUS_LABELS, formatCents, formatDate } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
+import type { Payment } from '../types'
 
 export default function Profile() {
   usePageTitle('Profil')
@@ -17,6 +20,11 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [payments, setPayments] = useState<Payment[] | null>(null)
+
+  useEffect(() => {
+    paymentsApi.mine().then(setPayments).catch(() => setPayments([]))
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -66,6 +74,41 @@ export default function Profile() {
           {saving ? 'Se salvează…' : 'Salvează'}
         </button>
       </form>
+
+      {/* Istoricul plăților pentru promovare (Stripe, mod de test) */}
+      <section className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold">Plățile mele</h2>
+        {payments && payments.length === 0 && <p className="text-sm text-slate-500">Nu ai promovat încă niciun anunț.</p>}
+        {payments && payments.length > 0 && (
+          <div className="overflow-x-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <table className="specs-table w-full text-sm" data-testid="payments-table">
+              <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                <tr>
+                  <th scope="col" className="py-2">Data</th>
+                  <th scope="col" className="py-2">Anunț</th>
+                  <th scope="col" className="py-2 text-right">Sumă</th>
+                  <th scope="col" className="py-2">Stare</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr key={p.id} className="border-t border-slate-100">
+                    <td className="py-2 whitespace-nowrap">{formatDate(p.created_at)}</td>
+                    <td className="py-2">
+                      <Link to={`/listings/${p.listing_id}`} className="text-blue-600 hover:underline">
+                        {p.listing_title}
+                      </Link>
+                      {p.promoted_until && <div className="text-xs text-slate-500">promovat până pe {formatDate(p.promoted_until)}</div>}
+                    </td>
+                    <td className="py-2 text-right whitespace-nowrap">{formatCents(p.amount_cents, p.currency)}</td>
+                    <td className="py-2">{PAYMENT_STATUS_LABELS[p.status]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

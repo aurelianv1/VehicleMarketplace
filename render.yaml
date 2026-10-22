@@ -1,0 +1,40 @@
+# Render Blueprint: infrastructura descrisă ca fișier (render.com → New → Blueprint).
+# Creează aplicația (imaginea din Dockerfile: Apache + FastAPI) și baza de date PostgreSQL.
+# Planul gratuit: aplicația „adoarme” după 15 minute fără vizitatori și pornește din nou
+# la prima vizită (~1 minut); discul se golește la repornire (vezi deploy/bootstrap.py).
+
+services:
+  - type: web
+    name: golden-marketplace
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: golden-marketplace-db
+          property: connectionString
+      # Generată de Render la prima publicare; nu apare nicăieri în cod
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PUBLIC_URL
+        value: https://golden-marketplace.onrender.com
+      - key: CORS_ORIGINS
+        value: https://golden-marketplace.onrender.com
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "100"
+      # Cheile Stripe de TEST se completează manual în panoul Render (sync: false = nu stau în git)
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+databases:
+  - name: golden-marketplace-db
+    plan: free
+    region: frankfurt
+    databaseName: carmarket
+    user: carmarket

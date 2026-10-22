@@ -19,7 +19,7 @@ export const LISTING_FILTER_KEYS = [
 
 export type ListingFilterKey = (typeof LISTING_FILTER_KEYS)[number]
 
-export type ListingQuery = Partial<Record<ListingFilterKey | 'sort' | 'page' | 'per_page', string>>
+export type ListingQuery = Partial<Record<ListingFilterKey | 'sort' | 'page' | 'per_page' | 'promoted', string>>
 
 // GET /listings/{id} incrementează `views` pe server. În dev, React StrictMode rulează
 // efectele de două ori, deci fără asta fiecare deschidere s-ar număra dublu.

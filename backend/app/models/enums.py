@@ -43,3 +43,9 @@ class ListingStatus(str, enum.Enum):
 class Currency(str, enum.Enum):
     EUR = "EUR"
     RON = "RON"
+
+
+class PaymentStatus(str, enum.Enum):
+    pending = "pending"    # sesiunea Stripe a fost creată, plata nu e încă confirmată
+    paid = "paid"          # Stripe a confirmat plata
+    expired = "expired"    # utilizatorul a renunțat sau sesiunea a expirat

@@ -36,17 +36,22 @@ export default function Home() {
   for (const key of LISTING_FILTER_KEYS) filters[key] = searchParams.get(key) ?? ''
 
   const [data, setData] = useState<Page<Listing> | null>(null)
-  const [featured, setFeatured] = useState<Listing[]>([])
+  const [featured, setFeatured] = useState<{ title: string; items: Listing[] }>({ title: '', items: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const queryKey = searchParams.toString()
 
-  // Caruselul: cele mai noi 5 anunțuri, încărcate o singură dată
+  // Caruselul: anunțurile promovate (plătite prin Stripe); dacă nu există, cele mai noi 5
   useEffect(() => {
     listingsApi
-      .search({ per_page: '5', sort: 'recent' })
-      .then((r) => setFeatured(r.items))
+      .search({ per_page: '8', promoted: 'true' })
+      .then(async (promoted) =>
+        promoted.items.length > 0
+          ? { title: 'Anunțuri promovate', items: promoted.items }
+          : { title: 'Anunțuri noi', items: (await listingsApi.search({ per_page: '5', sort: 'recent' })).items },
+      )
+      .then(setFeatured)
       .catch(() => {}) // fără carusel dacă cererea eșuează; lista de mai jos are propriul mesaj de eroare
   }, [])
 
@@ -131,7 +136,7 @@ export default function Home() {
       </div>
 
       {/* Doar pe prima pagină, fără filtre: altfel caruselul ar împinge rezultatele căutării în jos */}
-      {page === 1 && activeFilters === 0 && <FeaturedCarousel listings={featured} title="Anunțuri noi" />}
+      {page === 1 && activeFilters === 0 && <FeaturedCarousel listings={featured.items} title={featured.title} />}
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <aside className={`${showFilters ? 'block' : 'hidden'} lg:block`}>

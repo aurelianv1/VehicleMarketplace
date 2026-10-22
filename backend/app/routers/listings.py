@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.core.activity import log_action
@@ -12,6 +12,7 @@ from app.models.listing import Listing
 from app.models.user import User
 from app.schemas.listing import ListingCard, ListingCreate, ListingRead, ListingUpdate, Page
 from app.services import listing_service as svc
+from app.services import payments as pay
 from app.services.storage import delete_listing_folder
 
 router = APIRouter(prefix="/listings", tags=["listings"])
@@ -59,6 +60,8 @@ def list_listings(
     year_min: Annotated[int | None, Query(ge=1900)] = None,
     year_max: Annotated[int | None, Query(ge=1900)] = None,
     mileage_max: Annotated[int | None, Query(ge=0)] = None,
+    # Doar anunțurile promovate (caruselul de pe pagina principală)
+    promoted: bool = False,
     fuel_type: FuelType | None = None,
     transmission: Transmission | None = None,
     body_type: BodyType | None = None,
@@ -99,6 +102,10 @@ def list_listings(
     if body_type is not None:
         conditions.append(Listing.body_type == body_type)
 
+    promoted_until = pay.promoted_until_expr()
+    if promoted:
+        conditions.append(promoted_until > func.now())
+
     total = db.scalar(select(func.count(Listing.id)).where(*conditions)) or 0
 
     rows = db.scalars(
@@ -107,15 +114,17 @@ def list_listings(
         .options(selectinload(Listing.images))
         # id-ul departajează valorile egale: fără el, ordinea între pagini nu e garantată
         # și același anunț poate apărea pe două pagini (sau deloc)
-        .order_by(SORT_OPTIONS[sort], Listing.id.desc())
+        # Anunțurile promovate (plătite) apar primele, apoi sortarea aleasă de utilizator
+        .order_by(case((promoted_until > func.now(), 0), else_=1), SORT_OPTIONS[sort], Listing.id.desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
     ).all()
 
     favorites = svc.favorite_ids(db, viewer, [r.id for r in rows])
+    promoted_map = pay.promoted_ids(db, [r.id for r in rows])
 
     return Page[ListingCard](
-        items=[svc.to_card(r, favorites) for r in rows],
+        items=[svc.to_card(r, favorites, promoted_map) for r in rows],
         total=total,
         page=page,
         per_page=per_page,
@@ -132,7 +141,8 @@ def my_listings(db: DbSession, user: CurrentUser) -> list[ListingCard]:
         .options(selectinload(Listing.images))
         .order_by(Listing.created_at.desc())
     ).all()
-    return [svc.to_card(r, set()) for r in rows]
+    promoted_map = pay.promoted_ids(db, [r.id for r in rows])
+    return [svc.to_card(r, set(), promoted_map) for r in rows]
 
 
 @router.get("/{listing_id}", response_model=ListingRead)
@@ -150,7 +160,8 @@ def get_listing(listing_id: int, db: DbSession, viewer: OptionalUser) -> Listing
         db.commit()
 
     favorites = svc.favorite_ids(db, viewer, [listing.id])
-    return svc.to_detail(listing, viewer, listing.id in favorites)
+    promoted_until = pay.promoted_ids(db, [listing.id]).get(listing.id)
+    return svc.to_detail(listing, viewer, listing.id in favorites, promoted_until)
 
 
 @router.post("", response_model=ListingRead, status_code=status.HTTP_201_CREATED)

@@ -7,6 +7,7 @@ import ContactSeller from '../components/ContactSeller'
 import DeleteListingButton from '../components/DeleteListingButton'
 import ErrorMessage from '../components/ErrorMessage'
 import FavoriteButton from '../components/FavoriteButton'
+import PromoteButton from '../components/PromoteButton'
 import ImageGallery from '../components/ImageGallery'
 import Spinner from '../components/Spinner'
 import { useAuth } from '../context/AuthContext'
@@ -113,6 +114,12 @@ export default function ListingDetail() {
         ‹ Înapoi la anunțuri
       </Link>
 
+      {isOwner && new URLSearchParams(location.search).get('promotion') === 'cancelled' && (
+        <div role="status" className="mt-4 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+          Ai renunțat la plată. Nu ți s-a retras nicio sumă; poți promova anunțul oricând.
+        </div>
+      )}
+
       {listing.status !== 'active' && (
         <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Anunțul este <strong>{STATUS_LABELS[listing.status].toLowerCase()}</strong>
@@ -148,6 +155,9 @@ export default function ListingDetail() {
               </Link>
             )}
             {/* Backend-ul permite ștergerea proprietarului și adminului (_require_owner); butonul doar o expune */}
+            {isOwner && listing.status === 'active' && (
+              <PromoteButton listingId={listing.id} promotedUntil={listing.promoted_until} />
+            )}
             {canEdit && <DeleteListingButton key={listing.id} listingId={listing.id} isOwner={isOwner} />}
           </div>
 

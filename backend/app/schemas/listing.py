@@ -92,6 +92,8 @@ class ListingCard(BaseModel):
     created_at: datetime
     main_image: str | None = None
     is_favorite: bool = False
+    # Setat doar dacă anunțul e promovat ACUM (plată Stripe confirmată, perioadă neexpirată)
+    promoted_until: datetime | None = None
 
 
 class ListingRead(ListingBase):
@@ -107,6 +109,7 @@ class ListingRead(ListingBase):
     owner: UserPublic
     images: list[CarImageRead] = []
     is_favorite: bool = False
+    promoted_until: datetime | None = None
     # Telefonul vânzătorului: completat doar pentru utilizatorii autentificați
     seller_phone: str | None = None
 

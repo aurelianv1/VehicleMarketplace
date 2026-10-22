@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     # True în producție (HTTPS): cookie-ul de refresh pleacă doar pe conexiuni criptate
     COOKIE_SECURE: bool = False
 
+    # Adresa publică a aplicației (unde revine utilizatorul după plata pe Stripe)
+    PUBLIC_URL: str = "http://localhost:5173"
+    # Stripe, mod TEST (sk_test_...). Fără cheie, promovarea e dezactivată (503)
+    STRIPE_SECRET_KEY: str = ""
+    # Opțional: semnătura webhook-urilor Stripe (whsec_...)
+    STRIPE_WEBHOOK_SECRET: str = ""
+    PROMOTION_PRICE_CENTS: int = 500
+    PROMOTION_CURRENCY: str = "eur"
+    PROMOTION_DAYS: int = 7
+
     @field_validator("DATABASE_URL")
     @classmethod
     def use_psycopg_driver(cls, url: str) -> str:

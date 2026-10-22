@@ -11,7 +11,7 @@ from app.core.middleware import (
     SecurityHeadersMiddleware,
 )
 from app.db.session import engine
-from app.routers import admin, auth, conversations, favorites, images, listings, users, ws
+from app.routers import admin, auth, conversations, favorites, images, listings, payments, users, ws
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -46,6 +46,7 @@ app.include_router(favorites.router)
 app.include_router(conversations.router)
 app.include_router(ws.router)
 app.include_router(admin.router)
+app.include_router(payments.router)
 
 
 @app.get("/health", tags=["system"])

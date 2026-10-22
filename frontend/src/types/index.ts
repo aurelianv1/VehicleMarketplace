@@ -57,6 +57,7 @@ export interface ListingCard {
   created_at: string
   main_image: string | null // cale relativă, se trece prin imageUrl()
   is_favorite: boolean
+  promoted_until: string | null // setat doar dacă anunțul e promovat acum (plată Stripe)
 }
 
 export interface CarImage {
@@ -139,3 +140,24 @@ export type RealtimeEvent =
   | { type: 'read'; conversation_id: number; reader_id: number; message_ids: number[] }
   // generat local după o reconectare: paginile își reîncarcă datele, ca să prindă ce s-a pierdut
   | { type: 'reconnected' }
+
+export type PaymentStatus = 'pending' | 'paid' | 'expired'
+
+export interface Payment {
+  id: number
+  listing_id: number
+  listing_title: string
+  amount_cents: number
+  currency: string
+  status: PaymentStatus
+  created_at: string
+  paid_at: string | null
+  promoted_until: string | null
+}
+
+export interface PaymentsConfig {
+  enabled: boolean
+  price_cents: number
+  currency: string
+  days: number
+}

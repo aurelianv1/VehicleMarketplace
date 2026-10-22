@@ -9,6 +9,7 @@ from app.models.favorite import Favorite
 from app.models.listing import Listing
 from app.schemas.listing import ListingCard
 from app.services import listing_service as svc
+from app.services import payments as pay
 
 router = APIRouter(prefix="/favorites", tags=["favorites"])
 
@@ -24,7 +25,8 @@ def my_favorites(db: DbSession, user: CurrentUser) -> list[ListingCard]:
     ).all()
 
     all_ids = {r.id for r in rows}
-    return [svc.to_card(r, all_ids) for r in rows]
+    promoted_map = pay.promoted_ids(db, list(all_ids))
+    return [svc.to_card(r, all_ids, promoted_map) for r in rows]
 
 
 @router.post("/{listing_id}", status_code=status.HTTP_201_CREATED)
