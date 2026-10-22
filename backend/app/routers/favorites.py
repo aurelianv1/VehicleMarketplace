@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core.activity import log_action
 from app.core.deps import CurrentUser, DbSession
 from app.models.enums import ListingStatus
 from app.models.favorite import Favorite
@@ -40,6 +41,7 @@ def add_favorite(listing_id: int, db: DbSession, user: CurrentUser) -> dict[str,
     if exists is None:
         db.add(Favorite(user_id=user.id, listing_id=listing_id))
         db.commit()
+        log_action("favorite.add", user.id, listing=listing_id)
 
     return {"is_favorite": True}
 
@@ -54,5 +56,6 @@ def remove_favorite(listing_id: int, db: DbSession, user: CurrentUser) -> dict[s
     if favorite is not None:
         db.delete(favorite)
         db.commit()
+        log_action("favorite.remove", user.id, listing=listing_id)
 
     return {"is_favorite": False}

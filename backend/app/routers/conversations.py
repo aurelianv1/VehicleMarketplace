@@ -6,6 +6,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.activity import log_action
 from app.core.deps import CurrentUser, DbSession
 from app.models.enums import ListingStatus
 from app.models.listing import Listing
@@ -203,6 +204,8 @@ def start_conversation(
 
     message = _add_message(db, conversation, user, payload.body)
     _notify_message(background, conversation, message)
+    # Doar faptul că s-a trimis un mesaj, nu și conținutul: mesajele sunt private
+    log_action("message.send", user.id, conversation=conversation.id, listing=listing.id)
     return _detail(db, conversation.id, user)
 
 
@@ -236,6 +239,7 @@ def send_message(
     conversation = _get_for_participant(db, conversation_id, user)
     message = _add_message(db, conversation, user, payload.body)
     _notify_message(background, conversation, message)
+    log_action("message.send", user.id, conversation=conversation.id)
     return message
 
 

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
+from app.core.activity import log_action
 from app.core.deps import CurrentUser, DbSession, OptionalUser
 from app.models.enums import BodyType, FuelType, ListingStatus, Transmission
 from app.models.listing import Listing
@@ -159,6 +160,7 @@ def create_listing(payload: ListingCreate, db: DbSession, user: CurrentUser) -> 
     db.add(listing)
     db.commit()
     db.refresh(listing)
+    log_action("listing.create", user.id, id=listing.id, title=listing.title)
     return svc.to_detail(listing, user, False)
 
 
@@ -175,11 +177,17 @@ def update_listing(
             status.HTTP_400_BAD_REQUEST, "Adaugă cel puțin o poză înainte de publicare"
         )
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    for field, value in changes.items():
         setattr(listing, field, value)
 
     db.commit()
     db.refresh(listing)
+    log_action(
+        "listing.update", user.id, id=listing.id, fields=",".join(changes) or "-",
+        **({"status": listing.status.value} if "status" in changes else {}),
+        **({"by_admin": True} if listing.user_id != user.id else {}),
+    )
     return svc.to_detail(listing, user, False)
 
 
@@ -197,6 +205,7 @@ def publish_listing(listing_id: int, db: DbSession, user: CurrentUser) -> Listin
     listing.status = ListingStatus.active
     db.commit()
     db.refresh(listing)
+    log_action("listing.publish", user.id, id=listing.id)
     return svc.to_detail(listing, user, False)
 
 
@@ -205,6 +214,10 @@ def delete_listing(listing_id: int, db: DbSession, user: CurrentUser) -> None:
     listing = _get_or_404(db, listing_id)
     _require_owner(listing, user)
 
+    owner_id, title = listing.user_id, listing.title
     db.delete(listing)   # rândurile din car_images dispar prin CASCADE
     db.commit()
     delete_listing_folder(listing_id)   # fișierele de pe disc trebuie șterse separat
+    # Ștergerea făcută de un admin pe anunțul altcuiva e marcată separat, pentru audit
+    action = "listing.delete" if owner_id == user.id else "admin.listing_delete"
+    log_action(action, user.id, id=listing_id, owner=owner_id, title=title)

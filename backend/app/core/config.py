@@ -31,9 +31,25 @@ class Settings(BaseSettings):
     MAX_IMAGE_SIZE_MB: int = 5
     MAX_IMAGES_PER_LISTING: int = 15
 
+    # Jurnalul de activitate (fișier relativ la backend/)
+    LOG_DIR: str = "logs"
+    # Cereri permise per IP într-un minut; peste limită → 429 temporar
+    RATE_LIMIT_PER_MINUTE: int = 100
+    # Cookie-ul de refresh e trimis doar către rutele de autentificare. În producție,
+    # API-ul stă în spatele Apache sub /api, deci calea devine /api/auth
+    REFRESH_COOKIE_PATH: str = "/auth"
+    # True în producție (HTTPS): cookie-ul de refresh pleacă doar pe conexiuni criptate
+    COOKIE_SECURE: bool = False
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def log_path(self) -> Path:
+        path = BASE_DIR / self.LOG_DIR
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     @property
     def upload_path(self) -> Path:
