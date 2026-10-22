@@ -8,6 +8,9 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8, max_length=72, description="Minim 8 caractere")
     full_name: str = Field(min_length=2, max_length=120)
     phone: str | None = Field(default=None, max_length=30)
+    # Primite de la GET /auth/captcha și completate de utilizator (vezi services/captcha.py)
+    captcha_token: str = Field(max_length=1000)
+    captcha_answer: str = Field(max_length=20)
 
 
 class UserLogin(BaseModel):

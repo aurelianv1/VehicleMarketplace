@@ -1,6 +1,6 @@
 // Configurare comună pentru testele end-to-end (rulează într-un Firefox real, fără interfață).
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { randomBytes } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { deflateSync } from 'node:zlib'
 import puppeteer from 'puppeteer-core'
 
@@ -72,4 +72,24 @@ export function bigImagePath() {
     ]),
   )
   return path
+}
+
+/**
+ * Rezolvă CAPTCHA-ul aplicației așa cum doar cineva cu cheia serverului poate:
+ * tokenul conține HMAC(SECRET_KEY, cod:id), iar codul are 4 caractere din 31,
+ * deci încercăm toate cele ~920.000 de combinații (sub 2 secunde).
+ * Un robot de pe internet nu are SECRET_KEY, așa că nu poate face asta.
+ */
+export function solveCaptcha(token) {
+  const secret =
+    process.env.SECRET_KEY ??
+    readFileSync(`${REPO_ROOT}.env`, 'utf8').match(/^SECRET_KEY=(.*)$/m)?.[1]?.trim()
+  if (!secret) throw new Error('SECRET_KEY lipsește din .env')
+  const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  for (const a of alphabet) for (const b of alphabet) for (const c of alphabet) for (const d of alphabet) {
+    const code = a + b + c + d
+    if (createHmac('sha256', secret).update(`${code}:${payload.jti}`).digest('hex') === payload.h) return code
+  }
+  throw new Error('CAPTCHA nerezolvat (cheia din .env diferă de cea a backend-ului?)')
 }

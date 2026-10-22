@@ -17,6 +17,7 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.token import TokenPair
 from app.schemas.user import UserCreate, UserLogin, UserRead
+from app.services.captcha import CaptchaError, create_captcha, verify_captcha
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -44,8 +45,22 @@ def _token_pair(user: User) -> TokenPair:
     )
 
 
+@router.get("/captcha")
+def captcha(response: Response) -> dict[str, str]:
+    """Un CAPTCHA nou pentru formularul de înregistrare: {token, image (data URL PNG)}."""
+    response.headers["Cache-Control"] = "no-store"  # fiecare cerere trebuie să primească unul nou
+    return create_captcha()
+
+
 @router.post("/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, response: Response, db: DbSession) -> TokenPair:
+    # CAPTCHA înainte de orice altceva: un robot nu află nici măcar dacă emailul există
+    try:
+        verify_captcha(payload.captcha_token, payload.captcha_answer)
+    except CaptchaError as exc:
+        log_action("security.captcha_failed", level=logging.WARNING, reason=str(exc))
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
     email = payload.email.lower().strip()
 
     exists = db.scalar(select(User).where(User.email == email))

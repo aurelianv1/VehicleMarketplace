@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 
-import { BASE, REPO_ROOT, SCREENSHOTS, launchBrowser } from './config.mjs'
+import { BASE, REPO_ROOT, SCREENSHOTS, launchBrowser, solveCaptcha } from './config.mjs'
 
 let failures = 0
 const check = (name, ok, extra = '') => {
@@ -56,6 +56,25 @@ check('logout → navbar arată „Autentificare”', (await text()).includes('A
 await page.reload({ waitUntil: 'networkidle0' })
 check('după logout + F5 rămâne delogat', (await text()).includes('Autentificare') && !(await text()).includes('Ieșire'))
 
+// Ultimul CAPTCHA primit de pagină (tokenul vine în răspunsul GET /auth/captcha)
+let captchaToken = null
+page.on('response', async (r) => {
+  if (r.url().endsWith('/auth/captcha') && r.request().method() === 'GET') {
+    captchaToken = (await r.json().catch(() => ({}))).token ?? captchaToken
+  }
+})
+const freshCaptcha = async (previous) => {
+  await page.waitForFunction(() => document.querySelector('[data-testid=captcha-image]'), { timeout: 5000 })
+  for (let i = 0; i < 50 && (!captchaToken || captchaToken === previous); i++) await new Promise((r) => setTimeout(r, 100))
+  await new Promise((r) => setTimeout(r, 200)) // StrictMode cere două coduri la montare; îl așteptăm pe ultimul
+  return captchaToken
+}
+const typeCaptcha = async (answer) => {
+  await page.$eval('#captcha', (el) => el.select())
+  await page.keyboard.press('Backspace')
+  await page.type('#captcha', answer)
+}
+
 // 7. Register: parole diferite → eroare locală
 await page.goto(`${BASE}/register`, { waitUntil: 'networkidle0' })
 const email = `test${Date.now()}@example.com`
@@ -66,10 +85,26 @@ await page.type('#confirm', 'altaparola')
 await page.click('button[type=submit]')
 check('register: parole diferite', (await text()).includes('Parolele nu coincid'))
 
-// 8. Register valid → logat
+// 8. CAPTCHA greșit → eroare și cod nou; apoi codul corect → cont creat
 await page.$eval('#confirm', (el) => (el.value = ''))
 await page.click('#confirm', { clickCount: 3 })
 await page.type('#confirm', 'parola1234')
+const firstCaptcha = await freshCaptcha(null)
+check('CAPTCHA: imaginea se afișează', (await page.$eval('[data-testid=captcha-image]', (i) => i.src)).startsWith('data:image/png;base64,'))
+await page.click('button[type=submit]')
+check('CAPTCHA necompletat → eroare, fără cerere', (await text()).includes('Completează codul din imagine'))
+await typeCaptcha('ZZZZ')
+await page.click('button[type=submit]')
+await waitText('Codul din imagine este greșit').catch(() => {})
+check('CAPTCHA greșit → „Codul din imagine este greșit”', (await text()).includes('Codul din imagine este greșit'))
+const secondCaptcha = await freshCaptcha(firstCaptcha)
+check('după o greșeală se încarcă automat un cod nou', secondCaptcha !== firstCaptcha)
+const reuse = await page.evaluate(async (args) => {
+  const r = await fetch(`${args.api}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'reuse@example.com', password: 'parola1234', full_name: 'Robot', captcha_token: args.token, captcha_answer: 'ZZZZ' }) })
+  return (await r.json()).detail
+}, { api: 'http://localhost:8000', token: firstCaptcha })
+check('un cod deja folosit nu mai e acceptat', reuse.includes('deja folosit'), reuse)
+await typeCaptcha(solveCaptcha(secondCaptcha))
 await page.click('button[type=submit]')
 await waitText('Test Utilizator').catch(() => {})
 check('register valid → logat, numele în navbar', (await text()).includes('Test Utilizator'))
@@ -82,6 +117,7 @@ await page.type('#full_name', 'Altcineva')
 await page.type('#email', 'ion@example.com')
 await page.type('#password', 'parola1234')
 await page.type('#confirm', 'parola1234')
+await typeCaptcha(solveCaptcha(await freshCaptcha(null)))
 await page.click('button[type=submit]')
 await waitText('Există deja').catch(() => {})
 check('register email duplicat → 409', (await text()).includes('Există deja un cont cu acest email'))
