@@ -36,7 +36,7 @@ export default function Navbar() {
         <span className="flex items-center gap-1.5">
           Mesaje
           {unreadCount > 0 && (
-            <span data-testid="unread-badge" className="rounded-full bg-red-500 px-1.5 text-xs leading-5 font-semibold text-white" aria-label={`${unreadCount} mesaje necitite`}>
+            <span data-testid="unread-badge" className="pulse-badge rounded-full bg-red-500 px-1.5 text-xs leading-5 font-semibold text-white" aria-label={`${unreadCount} mesaje necitite`}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

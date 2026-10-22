@@ -34,12 +34,33 @@ const plural = (n) => (n === 1 ? '1 anunț' : n > 0 && (n % 100 === 0 || n % 100
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
 check('12 carduri pe pagina 1', (await cards()) === 12, await cards())
 check(`total „${plural(total)}”`, (await text()).includes(plural(total)))
+// Pozele au loading="lazy": browserul le încarcă abia când ajung în ecran, deci derulăm ca un utilizator
+await page.evaluate(async () => {
+  for (const img of document.querySelectorAll('article img')) {
+    img.scrollIntoView()
+    await new Promise((r) => (img.complete ? r() : img.addEventListener('load', r, { once: true })))
+  }
+  window.scrollTo(0, 0)
+})
 const images = await page.$$eval('article img', (imgs) => imgs.map((i) => [i.complete && i.naturalWidth > 0, i.src]))
 check('toate pozele s-au încărcat', images.every(([ok]) => ok), images.find(([ok]) => !ok)?.[1] ?? '')
 check('URL-uri poze cu /uploads/', images.every(([, src]) => src.startsWith('http://localhost:8000/uploads/listings/')))
 const sample = await page.$eval('article', (a) => a.innerText)
 check('card formatat (km, €, etichete RO)', / km/.test(sample) && /€/.test(sample) && /(Benzină|Diesel|Hibrid|Electric|GPL)/.test(sample), sample.replace(/\n/g, ' | '))
 await page.screenshot({ path: `${SCREENSHOTS}3-home.png` })
+
+// 1b. Caruselul: derulează singur, are săgeți, dispare când se caută ceva
+const activeSlide = () => page.$eval('.carousel-dot[aria-current=true]', (d) => d.getAttribute('aria-label'))
+check('caruselul e afișat pe prima pagină', (await page.$('[data-testid=carousel]')) !== null)
+const slideBefore = await activeSlide()
+await page.waitForFunction((before) => document.querySelector('.carousel-dot[aria-current=true]')?.getAttribute('aria-label') !== before, { timeout: 8000 }, slideBefore).catch(() => {})
+check('caruselul trece singur la slide-ul următor', (await activeSlide()) !== slideBefore, `${slideBefore} → ${await activeSlide()}`)
+await page.click('button[aria-label="Mergi la slide-ul 4"]')
+check('bulina 4 → slide-ul 4', (await activeSlide()) === 'Mergi la slide-ul 4')
+await page.hover('[data-testid=carousel]')
+await new Promise((r) => setTimeout(r, 5600))
+check('cu mouse-ul deasupra, caruselul stă pe loc', (await activeSlide()) === 'Mergi la slide-ul 4')
+await page.mouse.move(0, 0)
 
 // 2. Paginare
 await page.evaluate((last) => [...document.querySelectorAll('nav[aria-label=Paginare] button')].find((b) => b.innerText === last).click(), String(pages))
@@ -52,6 +73,7 @@ await page.click('form button[type=submit]')
 await settle()
 check(`filtru BMW → ?brand=BMW, ${bmwCount} rezultate`, (await search()) === '?brand=BMW' && (await cards()) === bmwCount, `${await search()} / ${await cards()}`)
 const titles = await page.$$eval('article h2', (h) => h.map((x) => x.innerText))
+check('cu un filtru activ, caruselul nu mai apare', (await page.$('[data-testid=carousel]')) === null)
 check('toate rezultatele sunt BMW', titles.every((t) => /BMW/i.test(t)), titles.join(', '))
 
 // 4. Back → înapoi la pagina 3 fără filtru, formularul golit

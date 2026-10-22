@@ -18,7 +18,7 @@ type Props = {
 
 export default function ListingCard({ listing, showFavorite = true, onFavoriteChange, footer, badge }: Props) {
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-md">
+    <article className="fade-in-up relative flex flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-md">
       <Link to={`/listings/${listing.id}`} className="flex flex-1 flex-col">
         <div className="aspect-[4/3] bg-slate-100">
           <img

@@ -1,0 +1,12 @@
+# Motoarele de căutare pot indexa anunțurile publice.
+# Paginile personale (cont, mesaje, formulare) nu au ce căuta în rezultatele Google.
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /profile
+Disallow: /my-listings
+Disallow: /favorites
+Disallow: /messages
+Disallow: /listings/new
+Disallow: /listings/*/edit

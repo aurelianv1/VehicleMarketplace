@@ -35,7 +35,14 @@ export default function ListingDetail() {
   // pe alt anunț să nu rămână starea de la cel vechi
   const [error, setError] = useState<{ id: string; status: number; message: string } | null>(null)
   const [phoneShownFor, setPhoneShownFor] = useState<number | null>(null)
-  usePageTitle(listing && String(listing.id) === id ? listing.title : 'Anunț')
+  const current = listing && String(listing.id) === id ? listing : null
+  usePageTitle(
+    current ? current.title : 'Anunț',
+    // Descriere pentru Google, din datele anunțului: „BMW X3 din 2020, 72.000 km, Diesel, Brașov – 35.900 €.”
+    current
+      ? `${current.brand} ${current.model} din ${current.year}, ${formatKm(current.mileage_km)}, ${FUEL_LABELS[current.fuel_type]}, ${current.city} – ${formatPrice(current.price, current.currency)}. Vezi pozele și contactează vânzătorul.`
+      : undefined,
+  )
 
   useEffect(() => {
     // Ca pe pagina principală: așteptăm sesiunea, pentru că de ea depind
@@ -195,16 +202,22 @@ export default function ListingDetail() {
         <div className="min-w-0 lg:col-start-1">
           <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="mb-3 text-lg font-semibold">Detalii</h2>
-            <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-              {specs
-                .filter(([, value]) => value)
-                .map(([label, value]) => (
-                  <div key={label} className="flex justify-between border-b border-slate-100 py-2 text-sm">
-                    <dt className="text-slate-500">{label}</dt>
-                    <dd className="font-medium">{value}</dd>
-                  </div>
-                ))}
-            </dl>
+            {/* Tabel: date de tip „caracteristică – valoare”, citite corect și de cititoarele de ecran */}
+            <table className="specs-table w-full text-sm">
+              <caption className="sr-only">Specificațiile mașinii</caption>
+              <tbody>
+                {specs
+                  .filter(([, value]) => value)
+                  .map(([label, value]) => (
+                    <tr key={label} className="border-b border-slate-100 last:border-0">
+                      <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-500">
+                        {label}
+                      </th>
+                      <td className="py-2 text-right font-medium">{value}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
           </section>
 
           {listing.description && (

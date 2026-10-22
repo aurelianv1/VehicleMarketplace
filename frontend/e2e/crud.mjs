@@ -16,6 +16,12 @@ async function token(email) {
 const ionTok = await token('ion@example.com')
 const apiGet = async (path, tok = ionTok) => (await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${tok}` } })).json()
 const ionMeBefore = await apiGet('/users/me')
+// Anunțuri rămase de la o rulare întreruptă (ex. oprită la mijloc): le ștergem înainte
+for (const l of await apiGet('/listings/mine')) {
+  if (l.title.startsWith('Skoda Octavia e2e')) {
+    await fetch(`${API}/listings/${l.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${ionTok}` } })
+  }
+}
 
 const browser = await launchBrowser()
 const page = await browser.newPage()

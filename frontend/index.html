@@ -2,11 +2,25 @@
 <html lang="ro">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Golden Marketplace</title>
+    <!-- SEO: descrierea apare sub titlu în rezultatele Google (pagina anunțului o înlocuiește cu una proprie) -->
+    <meta
+      name="description"
+      content="Golden Marketplace: anunțuri auto de vânzare din toată România. Caută după marcă, model, preț, an și kilometraj, vezi pozele și contactează direct vânzătorul."
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#d97706" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Previzualizarea linkului când e trimis pe rețele sociale sau în chat -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Golden Marketplace" />
+    <meta property="og:title" content="Golden Marketplace — anunțuri auto" />
+    <meta property="og:description" content="Anunțuri auto de vânzare din toată România, cu filtre, poze și mesaje directe către vânzător." />
+    <meta property="og:locale" content="ro_RO" />
   </head>
   <body>
+    <noscript>Golden Marketplace are nevoie de JavaScript pentru a afișa anunțurile.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
