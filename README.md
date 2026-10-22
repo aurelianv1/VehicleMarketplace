@@ -68,8 +68,8 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
 | 6 | Git | istoric cu commit-uri pe etape |
 | 6 | CI/CD | `.github/workflows/ci.yml`: teste unitare, lint și build la fiecare push |
 | 7 | Logging | `core/activity.py` → `backend/logs/activity.log`; adminul îl citește la `GET /admin/activity-log` |
-| 7 | Hosting | `Dockerfile` + `render.yaml` (Render, plan gratuit) |
-| 8 | SEO ≥ 90 | Lighthouse: **SEO 100**, accesibilitate 100 (meta description per anunț, `robots.txt`, Open Graph) |
+| 7 | Hosting | https://golden-marketplace.onrender.com — `Dockerfile` + `render.yaml` (Render, plan gratuit) |
+| 8 | SEO ≥ 90 | Lighthouse pe site-ul publicat: **SEO 100**, accesibilitate 100 (meta description per anunț, `robots.txt`, Open Graph) |
 | 8 | Plăți online | Stripe Checkout (`services/payments.py`), confirmare verificată la Stripe, webhook semnat |
 | 9 | CSRF | token în header (nu cookie) + cookie `SameSite` + verificarea `Origin` (`OriginCheckMiddleware`) |
 | 9 | XSS | React escapează textul (testat cu `<img onerror>`), CSP strict |
@@ -79,7 +79,7 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
 | 10 | Rate limiting | `RateLimitMiddleware`: 100 cereri/minut per IP → 429 cu `Retry-After` |
 | 10 | CAPTCHA | `services/captcha.py`: imagine generată, token semnat, folosire unică |
 | 10 | Steganografie | fiecare poză e decodată și re-codificată (redimensionare + JPEG nou): EXIF, date lipite și mesaje ascunse în pixeli dispar; testat |
-| 10 | Antete de securitate (A) | `.htaccess` + `SecurityHeadersMiddleware`: CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy |
+| 10 | Antete de securitate (A) | **A+** pe securityheaders.com (22.10.2026). `.htaccess` + `SecurityHeadersMiddleware`: CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy |
 | 10 | `.htaccess` | `frontend/public/.htaccess`: `.env`, fișiere ascunse, cod, copii de siguranță → 403; fără listarea folderelor; doar GET pe fișiere statice |
 
 ---
