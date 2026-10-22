@@ -304,7 +304,7 @@ Nu sunt poze reale de mașini.
 
 ---
 
-# PARTEA 2: Frontend (gata, testat — 155 de verificări e2e)
+# PARTEA 2: Frontend (gata, testat — 167 de verificări e2e, 76 de teste unitare)
 
 ## Setup
 
@@ -407,7 +407,7 @@ Dacă al doilea pas eșuează, anunțul rămâne draft și apare în „Anunțur
 
 De menționat la prezentare ca „dezvoltări viitoare":
 panou de administrare, verificare de email,
-căutare full-text (acum se folosește `ILIKE`), stocare S3/MinIO, rate limiting.
+căutare full-text (acum se folosește `ILIKE`), stocare S3/MinIO, Redis pentru mai multe procese.
 
 # Cum pornesc totul
 
@@ -434,6 +434,15 @@ Detalii în `frontend/e2e/README.md`.
 Nu e blocant — aplicația nu depinde de el.
 Fix: `:Z` pe volum și `user: "5050:5050"`, sau scos din `docker-compose.yml`.
 Alternativă: `docker compose exec db psql -U carmarket -d carmarket`
+
+# Baremul de evaluare
+
+Toate cerințele din `Barem_evaluare_proiect_web.pdf` (nota 2–10) sunt implementate;
+tabelul „cerință → unde în cod” e în README.md. Nu le strica:
+- rate limiting 100/min (testele e2e pornesc backend-ul cu `RATE_LIMIT_PER_MINUTE=100000`)
+- CAPTCHA la înregistrare, CSRF prin verificarea `Origin`, antete de securitate
+- `frontend/public/.htaccess` (Apache, în imaginea Docker), al doilea fișier CSS `src/styles/components.css`
+- teste unitare (`backend/tests`, `*.test.ts`) și `.github/workflows/ci.yml`
 
 # Preferințe de lucru
 

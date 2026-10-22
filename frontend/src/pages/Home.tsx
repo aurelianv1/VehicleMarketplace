@@ -5,6 +5,7 @@ import { ApiError } from '../api/client'
 import { LISTING_FILTER_KEYS, listingsApi } from '../api/listings'
 import type { ListingQuery } from '../api/listings'
 import ErrorMessage from '../components/ErrorMessage'
+import FeaturedCarousel from '../components/FeaturedCarousel'
 import Filters, { emptyFilters } from '../components/Filters'
 import type { FilterValues } from '../components/Filters'
 import ListingCard from '../components/ListingCard'
@@ -35,10 +36,24 @@ export default function Home() {
   for (const key of LISTING_FILTER_KEYS) filters[key] = searchParams.get(key) ?? ''
 
   const [data, setData] = useState<Page<Listing> | null>(null)
+  const [featured, setFeatured] = useState<{ title: string; items: Listing[] }>({ title: '', items: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const queryKey = searchParams.toString()
+
+  // Caruselul: anunțurile promovate (plătite prin Stripe); dacă nu există, cele mai noi 5
+  useEffect(() => {
+    listingsApi
+      .search({ per_page: '8', promoted: 'true' })
+      .then(async (promoted) =>
+        promoted.items.length > 0
+          ? { title: 'Anunțuri promovate', items: promoted.items }
+          : { title: 'Anunțuri noi', items: (await listingsApi.search({ per_page: '5', sort: 'recent' })).items },
+      )
+      .then(setFeatured)
+      .catch(() => {}) // fără carusel dacă cererea eșuează; lista de mai jos are propriul mesaj de eroare
+  }, [])
 
   useEffect(() => {
     // Așteptăm să știm dacă e cineva logat: altfel cererea pleacă fără token
@@ -107,6 +122,7 @@ export default function Home() {
             <select
               value={sort}
               onChange={(e) => updateParams({ sort: e.target.value === 'recent' ? '' : e.target.value })}
+              aria-label="Sortează anunțurile"
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
             >
               {options(SORT_LABELS).map(([value, label]) => (
@@ -118,6 +134,9 @@ export default function Home() {
           </label>
         </div>
       </div>
+
+      {/* Doar pe prima pagină, fără filtre: altfel caruselul ar împinge rezultatele căutării în jos */}
+      {page === 1 && activeFilters === 0 && <FeaturedCarousel listings={featured.items} title={featured.title} />}
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <aside className={`${showFilters ? 'block' : 'hidden'} lg:block`}>

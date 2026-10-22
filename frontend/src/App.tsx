@@ -13,6 +13,7 @@ import Messages from './pages/Messages'
 import MyListings from './pages/MyListings'
 import NewListing from './pages/NewListing'
 import NotFound from './pages/NotFound'
+import PaymentSuccess from './pages/PaymentSuccess'
 import Profile from './pages/Profile'
 import Register from './pages/Register'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -51,6 +52,7 @@ export default function App() {
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/messages/:id" element={<Messages />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/payments/success" element={<PaymentSuccess />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

@@ -1,5 +1,7 @@
 """Funcții ajutătoare pentru transformarea anunțurilor în răspunsuri API."""
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -32,16 +34,20 @@ def main_image_url(listing: Listing) -> str | None:
     return main.url_medium or main.url
 
 
-def to_card(listing: Listing, favorites: set[int]) -> ListingCard:
+def to_card(listing: Listing, favorites: set[int], promoted: dict[int, datetime] | None = None) -> ListingCard:
     card = ListingCard.model_validate(listing)
     card.main_image = main_image_url(listing)
     card.is_favorite = listing.id in favorites
+    card.promoted_until = (promoted or {}).get(listing.id)
     return card
 
 
-def to_detail(listing: Listing, viewer: User | None, is_favorite: bool) -> ListingRead:
+def to_detail(
+    listing: Listing, viewer: User | None, is_favorite: bool, promoted_until: datetime | None = None
+) -> ListingRead:
     detail = ListingRead.model_validate(listing)
     detail.is_favorite = is_favorite
+    detail.promoted_until = promoted_until
     # Numărul de telefon nu e public: altfel ar fi colectat automat de roboți
     detail.seller_phone = listing.owner.phone if viewer is not None else None
     return detail

@@ -79,3 +79,13 @@ export function pluralListings(n: number) {
   const rest = n % 100
   return n > 0 && (rest === 0 || rest >= 20) ? `${n} de anunțuri` : `${n} anunțuri`
 }
+
+/** Sumele de plată vin în cenți (500 → „5 €”), ca la Stripe */
+export const formatCents = (cents: number, currency: string) =>
+  `${new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 2 }).format(cents / 100)} ${currency.toUpperCase() === 'EUR' ? '€' : currency.toUpperCase()}`
+
+export const PAYMENT_STATUS_LABELS: Record<'pending' | 'paid' | 'expired', string> = {
+  pending: 'În așteptare',
+  paid: 'Plătită',
+  expired: 'Anulată / expirată',
+}

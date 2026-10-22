@@ -1,6 +1,6 @@
 # Teste end-to-end
 
-155 de verificări automate care rulează aplicația într-un **Firefox real** (fără
+167 de verificări automate care rulează aplicația într-un **Firefox real** (fără
 interfață), exact cum ar folosi-o un utilizator: completează formulare, încarcă
 poze, apasă butoane, verifică ce apare pe ecran și ce s-a salvat în baza de date.
 
@@ -8,9 +8,9 @@ poze, apasă butoane, verifică ce apare pe ecran și ce s-a salvat în baza de 
 
 | Suită | Verificări | Ce testează |
 |---|---|---|
-| `auth.mjs` | 15 | login, register, logout, sesiunea păstrată după F5, tokenul **nu** e în `localStorage`, cookie-ul de refresh nu e accesibil din JS |
-| `home.mjs` | 25 | listă, paginare, filtre în URL, butonul Back, sortare, favorite, **refresh automat la 401** (token expirat simulat) |
-| `detail.mjs` | 31 | galerie, telefonul ascuns pentru anonimi, vizualizări numărate o singură dată, ciorne vizibile doar proprietarului, 404 |
+| `auth.mjs` | 20 | login, register, logout, sesiunea păstrată după F5, tokenul **nu** e în `localStorage`, cookie-ul de refresh nu e accesibil din JS, CAPTCHA (greșit, lipsă, refolosit) |
+| `home.mjs` | 30 | listă, paginare, filtre în URL, butonul Back, sortare, carusel (derulare automată, pauză la hover), favorite, **refresh automat la 401** (token expirat simulat) |
+| `detail.mjs` | 33 | galerie, telefonul ascuns pentru anonimi, vizualizări numărate o singură dată, ciorne vizibile doar proprietarului, 404 |
 | `crud.mjs` | 44 | adăugare în 3 pași, fișier fals respins de backend, poză de ~18 MB micșorată în browser, editare, „Anunțurile mele”, favorite, profil |
 | `admin.mjs` | 13 | butonul de ștergere vizibil doar adminului și proprietarului, confirmare, pozele șterse de pe disc, redirect cu mesaj |
 | `messages.mjs` | 27 | două ferestre (cumpărător și vânzător): mesaje, bulina de necitite și „Văzut” **fără reload**, HTML afișat ca text, **reconectare după repornirea backend-ului**, mobil, acces interzis altor utilizatori |
@@ -18,8 +18,18 @@ poze, apasă butoane, verifică ce apare pe ecran și ce s-a salvat în baza de 
 ## Cum rulez
 
 Trebuie să meargă: PostgreSQL (`docker compose up -d`), backend-ul pe `:8000`
-(**cu `--reload`**: testul de mesagerie îl repornește ca să verifice reconectarea),
-frontend-ul pe `:5173` (`npm run dev`) și conturile din `python seed.py`
+pornit **special pentru teste**:
+
+```bash
+cd backend && RATE_LIMIT_PER_MINUTE=100000 uvicorn app.main:app --reload
+```
+
+- `RATE_LIMIT_PER_MINUTE`: aplicația blochează un IP după 100 de cereri pe minut,
+  iar testele fac mult mai multe de pe același IP. `npm run e2e` verifică limita
+  la pornire (antetul `X-RateLimit-Limit`) și spune ce ai de făcut dacă e prea mică.
+- `--reload`: testul de mesagerie repornește backend-ul ca să verifice reconectarea.
+
+Pe lângă backend mai trebuie frontend-ul pe `:5173` (`npm run dev`) și conturile din `python seed.py`
 (`ion@`, `maria@`). Anunțurile adăugate de mână nu încurcă testele: numerele
 așteptate se citesc din API.
 

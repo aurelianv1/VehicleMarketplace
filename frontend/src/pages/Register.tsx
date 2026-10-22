@@ -4,6 +4,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
+import CaptchaField from '../components/CaptchaField'
+import type { CaptchaValue } from '../components/CaptchaField'
 import ErrorMessage from '../components/ErrorMessage'
 import FormField from '../components/FormField'
 import { useAuth } from '../context/AuthContext'
@@ -19,6 +21,8 @@ export default function Register() {
   const [form, setForm] = useState({ full_name: '', email: '', phone: '', password: '', confirm: '' })
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [captcha, setCaptcha] = useState<CaptchaValue>({ token: '', answer: '' })
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   if (user) return <Navigate to={from} replace />
 
@@ -35,6 +39,7 @@ export default function Register() {
     if (new TextEncoder().encode(form.password).length > 72)
       return setError('Parola este prea lungă (maxim 72 de caractere)')
     if (form.password !== form.confirm) return setError('Parolele nu coincid')
+    if (!captcha.answer.trim()) return setError('Completează codul din imagine')
 
     setSubmitting(true)
     try {
@@ -43,10 +48,14 @@ export default function Register() {
         email: form.email.trim(),
         phone: form.phone.trim() || null,
         password: form.password,
+        captcha_token: captcha.token,
+        captcha_answer: captcha.answer.trim(),
       })
       navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Înregistrarea a eșuat')
+      // Un cod se poate folosi o singură dată, deci după orice eroare cerem altul
+      setCaptchaKey((k) => k + 1)
     } finally {
       setSubmitting(false)
     }
@@ -88,6 +97,7 @@ export default function Register() {
           value={form.confirm}
           onChange={update('confirm')}
         />
+        <CaptchaField value={captcha} onChange={setCaptcha} refreshKey={captchaKey} />
         <button
           type="submit"
           disabled={submitting}

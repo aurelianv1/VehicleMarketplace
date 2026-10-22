@@ -11,7 +11,9 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
 | Autentificare | JWT (PyJWT) + bcrypt |
 | Imagini | Pillow, stocate pe disc |
 | Timp real | WebSocket (FastAPI) pentru notificările de mesaje |
-| Teste | 155 de verificări end-to-end în Firefox (puppeteer-core) |
+| Plăți | Stripe Checkout (mod de test) pentru promovarea anunțurilor |
+| Publicare | Docker: Apache (cu `.htaccess`) în fața FastAPI, pe Render |
+| Teste | 76 unitare (pytest, Vitest) + 167 end-to-end în Firefox, rulate automat de GitHub Actions |
 
 <p>
   <img src="docs/screenshots/home.png" alt="Lista de anunțuri cu filtre" width="66%">
@@ -36,7 +38,49 @@ auto cu poze, iar vizitatorii le caută, le filtrează și le salvează la favor
 - **Favorite**: o inimă pe fiecare anunț și o pagină cu cele salvate.
 - **Mesaje în timp real** între cumpărător și vânzător: mesajele, bulina de
   necitite și confirmarea „Văzut” apar instant, fără reîncărcarea paginii.
+- **Promovare plătită** prin Stripe: anunțul apare primul în listă și în caruselul
+  de pe prima pagină, 7 zile; istoricul plăților e în profil.
+- **Carusel** pe prima pagină: anunțurile promovate (sau cele mai noi), derulare automată.
+- **CAPTCHA** la înregistrare, generat de server.
+- **Jurnal de activitate**: acțiunile utilizatorilor, scrise în `backend/logs/activity.log`.
 - **Responsive**: funcționează pe telefon, tabletă și desktop.
+
+---
+
+## Cerințele din barem: unde se găsesc
+
+| Nota | Cerință | Unde / cum |
+|---|---|---|
+| 2 | Baza de date în 3NF | 7 tabele (`backend/app/models/`); fără date deduse: vânzătorul conversației vine din anunț, perioada de promovare stă pe plată |
+| 2 | ≥4 scenarii | publicare anunț cu poze, căutare cu filtre, favorite, mesaje, promovare plătită, ștergere de admin |
+| 2 | Arhitectură | pe straturi (≈ MVC): `models/` (date), `schemas/` (validare), `routers/` (controllere), `services/` (logică), React (view) |
+| 2 | Imagini, text, tabele, linkuri | poze în galerie și carusel; `<table>` la specificații și la plăți (`ListingDetail.tsx`, `Profile.tsx`) |
+| 3 | ≥3 clase | modelele SQLAlchemy, `LocalImageStorage`, `ConnectionManager`, middleware-urile, `ApiError` |
+| 3 | Interfață | `ImageStorage` (Protocol, `services/storage.py`) implementată de `LocalImageStorage`; `interface` TypeScript în `types/index.ts` |
+| 3 | Autentificare / autorizare | JWT + bcrypt; proprietar / admin (`_require_owner`), rute protejate, `AdminUser` |
+| 4 | Moștenire | `User(Base, TimestampMixin)`, `UserRead(UserPublic)`, `ImageValidationError(ValueError)`, `ApiError extends Error`, `ListingDetail extends ListingCard` |
+| 4 | ≥2 tipuri de excepții | `ImageValidationError`, `CaptchaError`, `PaymentError`, `IntegrityError`, `HTTPException`, `ApiError` |
+| 4 | Carusel | `components/FeaturedCarousel.tsx`: derulare la 5 s, pauză la hover, săgeți, buline |
+| 4 | Animație | `styles/components.css`: apariția cardurilor, bulina care pulsează, bara caruselului |
+| 5 | ≥2 fișiere CSS, ≥10 proprietăți | `src/index.css` (Tailwind) și `src/styles/components.css` (CSS scris de mână, 35 de proprietăți distincte) |
+| 5 | Responsive | testat automat la 390 / 768 / 1280 px |
+| 6 | ≥5 teste unitare | 59 pytest (`backend/tests/`) + 17 Vitest (`*.test.ts`) |
+| 6 | Git | istoric cu commit-uri pe etape |
+| 6 | CI/CD | `.github/workflows/ci.yml`: teste unitare, lint și build la fiecare push |
+| 7 | Logging | `core/activity.py` → `backend/logs/activity.log`; adminul îl citește la `GET /admin/activity-log` |
+| 7 | Hosting | `Dockerfile` + `render.yaml` (Render, plan gratuit) |
+| 8 | SEO ≥ 90 | Lighthouse: **SEO 100**, accesibilitate 100 (meta description per anunț, `robots.txt`, Open Graph) |
+| 8 | Plăți online | Stripe Checkout (`services/payments.py`), confirmare verificată la Stripe, webhook semnat |
+| 9 | CSRF | token în header (nu cookie) + cookie `SameSite` + verificarea `Origin` (`OriginCheckMiddleware`) |
+| 9 | XSS | React escapează textul (testat cu `<img onerror>`), CSP strict |
+| 9 | SQL injection | doar interogări parametrizate (SQLAlchemy), niciun SQL construit din text |
+| 9 | Fișiere ≤ 12 MB | limita e 5 MB pe fișier, verificată înainte de citire; Apache limitează corpul cererii |
+| 9 | Extensii aprobate | `.jpg .jpeg .png .webp` pe server (`check_extension`) **și** conținutul real (Pillow) |
+| 10 | Rate limiting | `RateLimitMiddleware`: 100 cereri/minut per IP → 429 cu `Retry-After` |
+| 10 | CAPTCHA | `services/captcha.py`: imagine generată, token semnat, folosire unică |
+| 10 | Steganografie | fiecare poză e decodată și re-codificată (redimensionare + JPEG nou): EXIF, date lipite și mesaje ascunse în pixeli dispar; testat |
+| 10 | Antete de securitate (A) | `.htaccess` + `SecurityHeadersMiddleware`: CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy |
+| 10 | `.htaccess` | `frontend/public/.htaccess`: `.env`, fișiere ascunse, cod, copii de siguranță → 403; fără listarea folderelor; doar GET pe fișiere statice |
 
 ---
 
@@ -99,12 +143,20 @@ de sesiune e legat de numele host-ului, iar API-ul rulează pe `localhost:8000`.
 
 ### Teste
 
-Cu backend-ul și frontend-ul pornite:
+**Teste unitare** (rapide, fără bază de date sau browser; rulate și de GitHub Actions):
 
 ```bash
-cd frontend
-npm run e2e                  # 155 de verificări în Firefox headless, ~2 minute
-E2E_HEADFUL=1 npm run e2e    # cu fereastra browserului vizibilă
+cd backend && pytest          # 59 de teste: securitate, CAPTCHA, poze, rate limiting, CSRF, plăți
+cd frontend && npm test       # 17 teste: formatare, validarea formularului
+```
+
+**Teste end-to-end** (aplicația completă, într-un Firefox real). Backend-ul se pornește
+cu o limită de cereri mare, pentru că testele fac sute de cereri pe minut:
+
+```bash
+cd backend && RATE_LIMIT_PER_MINUTE=100000 uvicorn app.main:app --reload
+cd frontend && npm run e2e    # 167 de verificări, ~2 minute
+E2E_HEADFUL=1 npm run e2e     # cu fereastra browserului vizibilă
 ```
 
 Testele folosesc aplicația ca un utilizator real: completează formulare,
@@ -112,6 +164,18 @@ Testele folosesc aplicația ca un utilizator real: completează formulare,
 ecran și ce s-a salvat în bază. Testul de mesagerie deschide două ferestre
 (cumpărător și vânzător) și repornește backend-ul la mijloc, ca să verifice
 reconectarea automată. Detalii în [`frontend/e2e/README.md`](frontend/e2e/README.md).
+
+### Versiunea de producție (Apache + Docker)
+
+```bash
+docker compose --profile prod up --build     # http://localhost:8080
+```
+
+Imaginea (`Dockerfile`) conține Apache, frontend-ul construit și FastAPI. Apache
+servește aplicația, aplică regulile din `.htaccess` și trimite `/api/*` (inclusiv
+WebSocket-ul) către FastAPI. Local folosește o bază de date separată, ca `seed.py`
+să nu atingă datele de dezvoltare. Pe Render se publică din `render.yaml`
+(render.com → New → Blueprint → repo-ul).
 
 ---
 
@@ -353,7 +417,10 @@ Erorile au forma `{"detail": "mesaj în română"}`. La 422 (date invalide),
 - **Căutare full-text** (PostgreSQL `tsvector`); acum se folosește `ILIKE`.
 - **Conversie EUR/RON** la filtrul de preț; acum se compară doar numărul.
 - **Stocare S3 / MinIO** pentru poze, în locul discului local.
-- **Rate limiting** la login, împotriva ghicirii parolelor.
+- **Mai multe procese backend**: rate limiting-ul și conexiunile WebSocket stau în
+  memorie; cu mai multe procese ar fi nevoie de Redis.
+- **Stocare persistentă pentru poze** pe hosting (pe planul gratuit Render discul se
+  golește la repornire, iar datele demonstrative se refac automat).
 - **Reordonarea pozelor** prin drag & drop (API-ul suportă deja `position`).
 
 ## Comenzi utile

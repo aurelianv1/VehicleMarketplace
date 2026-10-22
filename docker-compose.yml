@@ -34,6 +34,41 @@ services:
     volumes:
       - pgadmindata:/var/lib/pgadmin:Z
 
+  # ---- Versiunea de producție (Apache + aplicația), pentru verificare locală ----
+  # docker compose --profile prod up --build   →   http://localhost:8080
+  # Are bază de date PROPRIE (db-prod, în memorie): la pornire poate rula seed.py,
+  # care șterge tot, iar datele din baza de dezvoltare nu trebuie atinse.
+  db-prod:
+    image: postgres:16-alpine
+    profiles: ["prod"]
+    environment:
+      POSTGRES_USER: carmarket
+      POSTGRES_PASSWORD: carmarket
+      POSTGRES_DB: carmarket_prod
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carmarket -d carmarket_prod"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    profiles: ["prod"]
+    container_name: cm_app
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql+psycopg://carmarket:carmarket@db-prod:5432/carmarket_prod
+      SECRET_KEY: cheie-doar-pentru-testul-local-al-imaginii-de-productie
+      CORS_ORIGINS: http://localhost:8080
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-100}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    depends_on:
+      db-prod:
+        condition: service_healthy
+
 volumes:
   pgdata:
   pgadmindata:

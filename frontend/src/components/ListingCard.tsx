@@ -18,15 +18,21 @@ type Props = {
 
 export default function ListingCard({ listing, showFavorite = true, onFavoriteChange, footer, badge }: Props) {
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-md">
+    <article className="fade-in-up relative flex flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-md">
       <Link to={`/listings/${listing.id}`} className="flex flex-1 flex-col">
-        <div className="aspect-[4/3] bg-slate-100">
+        <div className="relative aspect-[4/3] bg-slate-100">
           <img
             src={imageUrl(listing.main_image)}
             alt={listing.title}
             loading="lazy"
             className="h-full w-full object-cover"
           />
+          {/* Jos pe poză, ca să nu se suprapună cu eticheta de status (sus, în „Anunțurile mele”) */}
+          {listing.promoted_until && (
+            <span className="absolute bottom-2 left-2 rounded bg-amber-700 px-2 py-0.5 text-xs font-bold text-white shadow" data-testid="promoted-badge">
+              ★ Promovat
+            </span>
+          )}
         </div>
         <div className="flex flex-1 flex-col p-4">
           <h2 className="line-clamp-2 font-semibold text-slate-900">{listing.title}</h2>

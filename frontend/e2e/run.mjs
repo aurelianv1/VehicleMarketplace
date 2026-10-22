@@ -6,6 +6,24 @@ const suites = process.argv.slice(2).length ? process.argv.slice(2) : all
 const here = new URL('.', import.meta.url).pathname
 const results = []
 
+// Testele fac sute de cereri pe minut de pe același IP; cu limita din aplicație (100/min)
+// ar fi blocate. Backend-ul pentru teste se pornește cu o limită mare (vezi e2e/README.md).
+const { API } = await import('./config.mjs')
+const probe = await fetch(`${API}/listings?per_page=1`).catch(() => null)
+const limit = Number(probe?.headers.get('x-ratelimit-limit') ?? 0)
+if (!probe) {
+  console.error(`Backend-ul nu răspunde la ${API}. Pornește-l înainte de teste.`)
+  process.exit(1)
+}
+if (limit < 10000) {
+  console.error(
+    `Backend-ul rulează cu limita de ${limit} cereri/minut, prea mică pentru teste.\n` +
+      'Repornește-l pentru teste cu:\n' +
+      '  cd backend && RATE_LIMIT_PER_MINUTE=100000 uvicorn app.main:app --reload',
+  )
+  process.exit(1)
+}
+
 for (const suite of suites) {
   console.log(`\n=== ${suite} ===`)
   const r = spawnSync('node', [`${here}${suite}.mjs`], { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' })

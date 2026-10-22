@@ -1,6 +1,9 @@
+import logging
+
 from fastapi import APIRouter, Cookie, HTTPException, Response, status
 from sqlalchemy import select
 
+from app.core.activity import log_action
 from app.core.config import settings
 from app.core.deps import CurrentUser, DbSession
 from app.core.security import (
@@ -14,6 +17,7 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.token import TokenPair
 from app.schemas.user import UserCreate, UserLogin, UserRead
+from app.services.captcha import CaptchaError, create_captcha, verify_captcha
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,9 +31,9 @@ def _set_refresh_cookie(response: Response, user_id: int) -> None:
         value=create_refresh_token(user_id),
         httponly=True,
         samesite="lax",
-        secure=False,  # True în producție, pe HTTPS
+        secure=settings.COOKIE_SECURE,  # True în producție, pe HTTPS
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
-        path="/auth",
+        path=settings.REFRESH_COOKIE_PATH,
     )
 
 
@@ -41,8 +45,22 @@ def _token_pair(user: User) -> TokenPair:
     )
 
 
+@router.get("/captcha")
+def captcha(response: Response) -> dict[str, str]:
+    """Un CAPTCHA nou pentru formularul de înregistrare: {token, image (data URL PNG)}."""
+    response.headers["Cache-Control"] = "no-store"  # fiecare cerere trebuie să primească unul nou
+    return create_captcha()
+
+
 @router.post("/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, response: Response, db: DbSession) -> TokenPair:
+    # CAPTCHA înainte de orice altceva: un robot nu află nici măcar dacă emailul există
+    try:
+        verify_captcha(payload.captcha_token, payload.captcha_answer)
+    except CaptchaError as exc:
+        log_action("security.captcha_failed", level=logging.WARNING, reason=str(exc))
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
     email = payload.email.lower().strip()
 
     exists = db.scalar(select(User).where(User.email == email))
@@ -59,6 +77,7 @@ def register(payload: UserCreate, response: Response, db: DbSession) -> TokenPai
     db.commit()
     db.refresh(user)
 
+    log_action("auth.register", user.id, email=user.email)
     _set_refresh_cookie(response, user.id)
     return _token_pair(user)
 
@@ -69,11 +88,15 @@ def login(payload: UserLogin, response: Response, db: DbSession) -> TokenPair:
 
     # Același mesaj pentru email greșit și parolă greșită, ca să nu dezvăluim ce conturi există
     if user is None or not verify_password(payload.password, user.password_hash):
+        # Încercările eșuate apar în jurnal: un șir lung de la același IP înseamnă ghicire de parole
+        log_action("auth.login_failed", level=logging.WARNING, email=payload.email)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email sau parolă incorecte")
 
     if not user.is_active:
+        log_action("auth.login_blocked", user.id, level=logging.WARNING)
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Contul este dezactivat")
 
+    log_action("auth.login", user.id)
     _set_refresh_cookie(response, user.id)
     return _token_pair(user)
 
@@ -101,7 +124,8 @@ def refresh(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response) -> None:
-    response.delete_cookie(REFRESH_COOKIE, path="/auth")
+    log_action("auth.logout")
+    response.delete_cookie(REFRESH_COOKIE, path=settings.REFRESH_COOKIE_PATH)
 
 
 @router.get("/me", response_model=UserRead)

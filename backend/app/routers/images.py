@@ -1,7 +1,10 @@
+import logging
+
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from app.core.activity import log_action
 from app.core.config import settings
 from app.core.deps import CurrentUser, DbSession
 from app.models.car_image import CarImage
@@ -9,7 +12,7 @@ from app.models.listing import Listing
 from app.models.user import User
 from app.schemas.car_image import CarImageRead, CarImageUpdate
 from app.services import listing_service as svc
-from app.services.storage import ImageValidationError, delete_image_files, save_image
+from app.services.storage import ImageValidationError, check_extension, delete_image_files, save_image
 
 router = APIRouter(prefix="/listings/{listing_id}/images", tags=["images"])
 
@@ -64,13 +67,18 @@ async def upload_images(
     next_position += 1
 
     created: list[CarImage] = []
+    max_bytes = settings.MAX_IMAGE_SIZE_MB * 1024 * 1024
     for upload in files:
-        raw = await upload.read()
         try:
-            paths = save_image(listing_id, raw)
+            # Verificările ieftine întâi: extensia și dimensiunea declarată, înainte să citim fișierul
+            check_extension(upload.filename)
+            if upload.size is not None and upload.size > max_bytes:
+                raise ImageValidationError(f"Fișierul depășește limita de {settings.MAX_IMAGE_SIZE_MB} MB")
+            paths = save_image(listing_id, await upload.read())
         except ImageValidationError as exc:
             # Pozele salvate până acum rămân; raportăm fișierul problematic
             db.commit()
+            log_action("image.rejected", user.id, level=logging.WARNING, listing=listing_id, file=upload.filename, reason=str(exc))
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, f"{upload.filename}: {exc}"
             ) from exc
@@ -89,6 +97,7 @@ async def upload_images(
     db.commit()
     for image in created:
         db.refresh(image)
+    log_action("image.upload", user.id, listing=listing_id, count=len(created))
     return created
 
 
@@ -111,6 +120,7 @@ def update_image(
 
     db.commit()
     db.refresh(image)
+    log_action("image.update", user.id, listing=listing_id, image=image_id, main=bool(payload.is_main))
     return image
 
 
@@ -128,6 +138,7 @@ def delete_image(listing_id: int, image_id: int, db: DbSession, user: CurrentUse
     delete_image_files([image.url, image.url_medium, image.url_thumb])
     db.delete(image)
     db.commit()
+    log_action("image.delete", user.id, listing=listing_id, image=image_id)
 
     # Dacă am șters poza principală, prima rămasă îi ia locul
     if was_main:

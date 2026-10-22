@@ -1,4 +1,5 @@
-// Tipurile oglindesc schemele Pydantic din backend (vezi CLAUDE.md)
+// Tipurile oglindesc schemele Pydantic din backend (vezi CLAUDE.md).
+// Obiectele sunt `interface` (pot fi extinse cu `extends`); valorile fixe sunt uniuni `type`.
 
 export type FuelType = 'petrol' | 'diesel' | 'hybrid' | 'plugin_hybrid' | 'electric' | 'lpg'
 export type Transmission = 'manual' | 'automatic' | 'semi_automatic'
@@ -16,7 +17,7 @@ export type ListingStatus = 'draft' | 'active' | 'sold' | 'inactive'
 export type Currency = 'EUR' | 'RON'
 export type SortOption = 'recent' | 'price_asc' | 'price_desc' | 'year_desc' | 'mileage_asc'
 
-export type User = {
+export interface User {
   id: number
   full_name: string
   created_at: string
@@ -25,14 +26,14 @@ export type User = {
   is_admin: boolean
 }
 
-export type TokenPair = {
+export interface TokenPair {
   access_token: string
   token_type: 'bearer'
   expires_in: number
   user: User
 }
 
-export type Page<T> = {
+export interface Page<T> {
   items: T[]
   total: number
   page: number
@@ -40,7 +41,7 @@ export type Page<T> = {
   pages: number
 }
 
-export type ListingCard = {
+export interface ListingCard {
   id: number
   title: string
   brand: string
@@ -56,9 +57,10 @@ export type ListingCard = {
   created_at: string
   main_image: string | null // cale relativă, se trece prin imageUrl()
   is_favorite: boolean
+  promoted_until: string | null // setat doar dacă anunțul e promovat acum (plată Stripe)
 }
 
-export type CarImage = {
+export interface CarImage {
   id: number
   url: string
   url_medium: string | null
@@ -67,7 +69,8 @@ export type CarImage = {
   is_main: boolean
 }
 
-export type ListingDetail = Omit<ListingCard, 'main_image'> & {
+/** Moștenire între interfețe: detaliul are tot ce are cardul (fără main_image), plus restul. */
+export interface ListingDetail extends Omit<ListingCard, 'main_image'> {
   body_type: BodyType | null
   engine_capacity: number | null
   horsepower: number | null
@@ -82,7 +85,7 @@ export type ListingDetail = Omit<ListingCard, 'main_image'> & {
 }
 
 /** Corpul pentru POST /listings și PATCH /listings/{id} */
-export type ListingPayload = {
+export interface ListingPayload {
   title: string
   brand: string
   model: string
@@ -101,7 +104,7 @@ export type ListingPayload = {
   city: string
 }
 
-export type Message = {
+export interface Message {
   id: number
   conversation_id: number
   sender_id: number
@@ -110,7 +113,7 @@ export type Message = {
   read_at: string | null // null = destinatarul nu l-a citit încă
 }
 
-export type Conversation = {
+export interface Conversation {
   id: number
   listing: {
     id: number
@@ -127,7 +130,9 @@ export type Conversation = {
   last_message_at: string
 }
 
-export type ConversationDetail = Conversation & { messages: Message[] }
+export interface ConversationDetail extends Conversation {
+  messages: Message[]
+}
 
 /** Evenimentele primite pe WebSocket (vezi backend/app/routers/conversations.py) */
 export type RealtimeEvent =
@@ -135,3 +140,24 @@ export type RealtimeEvent =
   | { type: 'read'; conversation_id: number; reader_id: number; message_ids: number[] }
   // generat local după o reconectare: paginile își reîncarcă datele, ca să prindă ce s-a pierdut
   | { type: 'reconnected' }
+
+export type PaymentStatus = 'pending' | 'paid' | 'expired'
+
+export interface Payment {
+  id: number
+  listing_id: number
+  listing_title: string
+  amount_cents: number
+  currency: string
+  status: PaymentStatus
+  created_at: string
+  paid_at: string | null
+  promoted_until: string | null
+}
+
+export interface PaymentsConfig {
+  enabled: boolean
+  price_cents: number
+  currency: string
+  days: number
+}

@@ -2,15 +2,17 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import selectinload
 
+from app.core.activity import log_action
 from app.core.deps import CurrentUser, DbSession, OptionalUser
 from app.models.enums import BodyType, FuelType, ListingStatus, Transmission
 from app.models.listing import Listing
 from app.models.user import User
 from app.schemas.listing import ListingCard, ListingCreate, ListingRead, ListingUpdate, Page
 from app.services import listing_service as svc
+from app.services import payments as pay
 from app.services.storage import delete_listing_folder
 
 router = APIRouter(prefix="/listings", tags=["listings"])
@@ -58,6 +60,8 @@ def list_listings(
     year_min: Annotated[int | None, Query(ge=1900)] = None,
     year_max: Annotated[int | None, Query(ge=1900)] = None,
     mileage_max: Annotated[int | None, Query(ge=0)] = None,
+    # Doar anunțurile promovate (caruselul de pe pagina principală)
+    promoted: bool = False,
     fuel_type: FuelType | None = None,
     transmission: Transmission | None = None,
     body_type: BodyType | None = None,
@@ -98,6 +102,10 @@ def list_listings(
     if body_type is not None:
         conditions.append(Listing.body_type == body_type)
 
+    promoted_until = pay.promoted_until_expr()
+    if promoted:
+        conditions.append(promoted_until > func.now())
+
     total = db.scalar(select(func.count(Listing.id)).where(*conditions)) or 0
 
     rows = db.scalars(
@@ -106,15 +114,17 @@ def list_listings(
         .options(selectinload(Listing.images))
         # id-ul departajează valorile egale: fără el, ordinea între pagini nu e garantată
         # și același anunț poate apărea pe două pagini (sau deloc)
-        .order_by(SORT_OPTIONS[sort], Listing.id.desc())
+        # Anunțurile promovate (plătite) apar primele, apoi sortarea aleasă de utilizator
+        .order_by(case((promoted_until > func.now(), 0), else_=1), SORT_OPTIONS[sort], Listing.id.desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
     ).all()
 
     favorites = svc.favorite_ids(db, viewer, [r.id for r in rows])
+    promoted_map = pay.promoted_ids(db, [r.id for r in rows])
 
     return Page[ListingCard](
-        items=[svc.to_card(r, favorites) for r in rows],
+        items=[svc.to_card(r, favorites, promoted_map) for r in rows],
         total=total,
         page=page,
         per_page=per_page,
@@ -131,7 +141,8 @@ def my_listings(db: DbSession, user: CurrentUser) -> list[ListingCard]:
         .options(selectinload(Listing.images))
         .order_by(Listing.created_at.desc())
     ).all()
-    return [svc.to_card(r, set()) for r in rows]
+    promoted_map = pay.promoted_ids(db, [r.id for r in rows])
+    return [svc.to_card(r, set(), promoted_map) for r in rows]
 
 
 @router.get("/{listing_id}", response_model=ListingRead)
@@ -149,7 +160,8 @@ def get_listing(listing_id: int, db: DbSession, viewer: OptionalUser) -> Listing
         db.commit()
 
     favorites = svc.favorite_ids(db, viewer, [listing.id])
-    return svc.to_detail(listing, viewer, listing.id in favorites)
+    promoted_until = pay.promoted_ids(db, [listing.id]).get(listing.id)
+    return svc.to_detail(listing, viewer, listing.id in favorites, promoted_until)
 
 
 @router.post("", response_model=ListingRead, status_code=status.HTTP_201_CREATED)
@@ -159,6 +171,7 @@ def create_listing(payload: ListingCreate, db: DbSession, user: CurrentUser) -> 
     db.add(listing)
     db.commit()
     db.refresh(listing)
+    log_action("listing.create", user.id, id=listing.id, title=listing.title)
     return svc.to_detail(listing, user, False)
 
 
@@ -175,11 +188,17 @@ def update_listing(
             status.HTTP_400_BAD_REQUEST, "Adaugă cel puțin o poză înainte de publicare"
         )
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    for field, value in changes.items():
         setattr(listing, field, value)
 
     db.commit()
     db.refresh(listing)
+    log_action(
+        "listing.update", user.id, id=listing.id, fields=",".join(changes) or "-",
+        **({"status": listing.status.value} if "status" in changes else {}),
+        **({"by_admin": True} if listing.user_id != user.id else {}),
+    )
     return svc.to_detail(listing, user, False)
 
 
@@ -197,6 +216,7 @@ def publish_listing(listing_id: int, db: DbSession, user: CurrentUser) -> Listin
     listing.status = ListingStatus.active
     db.commit()
     db.refresh(listing)
+    log_action("listing.publish", user.id, id=listing.id)
     return svc.to_detail(listing, user, False)
 
 
@@ -205,6 +225,10 @@ def delete_listing(listing_id: int, db: DbSession, user: CurrentUser) -> None:
     listing = _get_or_404(db, listing_id)
     _require_owner(listing, user)
 
+    owner_id, title = listing.user_id, listing.title
     db.delete(listing)   # rândurile din car_images dispar prin CASCADE
     db.commit()
     delete_listing_folder(listing_id)   # fișierele de pe disc trebuie șterse separat
+    # Ștergerea făcută de un admin pe anunțul altcuiva e marcată separat, pentru audit
+    action = "listing.delete" if owner_id == user.id else "admin.listing_delete"
+    log_action(action, user.id, id=listing_id, owner=owner_id, title=title)
